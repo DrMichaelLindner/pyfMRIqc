@@ -40,6 +40,8 @@ a png image containing the following plots:
 a text file
     -  containing an overview about scan and QC parameters
 
+See guidelines about the output in the [Wiki](https://github.com/DrMichaelLindner/fMRI_QC/wiki)
+
 
 ## *Install*  
 Copy the fMRI_QC folder in a folder of your choice on your system and add the directory to your PYTHONPATH.

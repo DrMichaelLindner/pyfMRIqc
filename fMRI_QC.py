@@ -5,36 +5,34 @@ fMRI_QC.py calculates and provides information of a functional MRI nifti file fo
 
 USAGE
     python fmri_qc.py
-    python fmri_qc.py -n <func_nift_file>
-    python fmri_qc.py -n <func_nift_file> -m <motion_file>
-    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
-    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -o <output_path>
+    python fmri_qc.py -n <func_nifti_file> -t <mask_threshold>
+    python fmri_qc.py -n <func_nifti_file> -t <mask_threshold> -m <motion_file>
+
 
 INPUT
     -n:   functional MR nifti file
-    -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
     -t:   threshold of mean values for the mask to calculate SNR etc.
-    -o:   output folder
+    -m:   (optional) motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
+
 All input are optionally: if not defined input dialogs will pop up to select the files manually.
 
 OUTPUT
-It creates the following nifti images as output:
+fMRI_QC creates the following output files:
+- various nifti images containing:
     - MEAN over time
     - VAR over time
     - MASK (binary - containing voxels above the threshold)
     - SNR signal-to-noise ratio
     - SQUARED DIFF
     - SQUARED SCALED DIFF (Squared Diff / Mean Diff)
-
-a png image containing the following plots:
+- a png image containing the following plots:
     - scaled variability: Mean (over all voxel) squared diff plot over time / global mean squared diff
     - slice by slice variability: Mean (mean per slice) squared diff plot over time / global mean squared diff
     - if motion file was selected: sum of relative movements over time (z-scored)
     - scaled mean voxel intensity: mean(data/global mean) )(z-scored)
     - variance of scaled variability (z-scored)
     - min/mean/max slice variability
-
-a text file
+- a text file
     - containing an overview about scan and QC parameters
 
 LICENCE
@@ -91,11 +89,11 @@ def main():
     # input dialogs if no files are give as input paramter
     # functional file
     if niifile == '':
-        niifile = easygui.fileopenbox(title='Select functional image', multiple=False)
+        niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
     # motion file
     if motionfile == '':
         motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)',
-                                         multiple=False)
+                                         multiple=False, default="*.nii")
     # mask threshold
     if maskthresh == '':
         maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
@@ -124,7 +122,8 @@ def main():
 
     # print input
     print('Functional MRI nifti file: ' + niifile)
-    print('Motion parameter file: ' + motionfile)
+    if motionfile is not None:
+        print('Motion parameter file: ' + motionfile)
     print('Mask threshold: ' + str(maskthresh))
 
     process(niifile, motionfile, maskthresh, outputdirectory, fname, fext)
@@ -327,9 +326,9 @@ def process(niifile, motionfile, maskthresh, outputdirectory, fname, fext):
         text_file.write("Max absolute Movement: " + str(np.max(rm)) + "\n")
         text_file.write("Mean relative Movement: " + str(np.mean(relrm)) + "\n")
         text_file.write("Max relative Movement: " + str(np.max(relrm)) + "\n")
-        text_file.write("Movements (>0.1mm): " + str(len(nrrm01)) + "\n")
-        text_file.write("Movements (>0.5mm): " + str(len(nrrm05)) + "\n")
-        text_file.write("Movements (>voxelsize): " + str(len(nrrmv)) + "\n")
+        text_file.write("Relative Movements (>0.1mm): " + str(len(nrrm01)) + " volumes\n")
+        text_file.write("Relative Movements (>0.5mm): " + str(len(nrrm05)) + " volumes\n")
+        text_file.write("Relative Movements (>voxelsize): " + str(len(nrrmv)) + " volumes\n")
 
         # add line to plot
         plt.plot(stats.zscore(rmsum), label='sum of relative movements')

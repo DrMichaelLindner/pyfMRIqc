@@ -7,14 +7,12 @@ fMRI_QC.py calculates and provides information of a given functional MRI nifti f
         python fmri_qc.py -n <func_nift_file> 
         python fmri_qc.py -n <func_nift_file> -m <motion_file> 
         python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
-        python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -o <output_folder>
         
         
 ## *Input*
         -n:   functional MR nifti file 
         -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
         -t:   threshold of mean values for the mask to calculate SNR etc.
-        -o:   output folder  
     All input are optionally: if not defined input dialogs will pop up to select the files manually.
     
     

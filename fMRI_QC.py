@@ -62,9 +62,9 @@ import matplotlib
 
 matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
-import easygui
+# import easygui
 from scipy import stats
-from tkinter import messagebox
+from tkinter import messagebox, filedialog
 
 
 def main():
@@ -77,7 +77,7 @@ def main():
 
     niifile = ''
     motionfile = ''
-    maskNII = ''
+    masknii = ''
     maskthresh = ''
     outputdirectory = ''
 
@@ -89,7 +89,7 @@ def main():
         elif o == "-t":
             maskthresh = int(a)
         elif o == "-k":
-            maskNII == a
+            masknii == a
         elif o == "-o":
             outputdirectory = a
         elif o in ("-h", "--help"):
@@ -99,7 +99,9 @@ def main():
     # input dialogs if no files are give as input parameter
     # functional file
     if niifile == '':
-        niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
+        # niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
+        niifile = filedialog.askopenfilename(title="Select functional image", multiple=False,
+                                     filetypes=(("nifti", "*.nii"),("all files","*.*")))
     # motion file
     if motionfile == '':
         motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)',
@@ -110,8 +112,8 @@ def main():
                                       default='200')
         maskthresh = int(maskthresh)
     # mask nifti file
-    if maskNII == '':
-        maskNII = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
+    if masknii == '':
+        masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
 
     # get filename
     filepath, filename = os.path.split(niifile)
@@ -137,13 +139,13 @@ def main():
     if motionfile is not None:
         print('Motion parameter file: ' + motionfile)
     print('Mask threshold: ' + str(maskthresh))
-    if maskNII is not None:
-        print('mask nifti file: ' + maskNII)
+    if masknii is not None:
+        print('mask nifti file: ' + masknii)
 
-    process(niifile, motionfile, maskthresh, maskNII, outputdirectory, fname, fext)
+    process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fext)
 
 
-def process(niifile, motionfile, maskthresh, maskNII, outputdirectory, fname, fext):
+def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fext):
     # load and get func data
     print("Load File")
     nii = nib.load(niifile)
@@ -155,11 +157,11 @@ def process(niifile, motionfile, maskthresh, maskNII, outputdirectory, fname, fe
     prefix = "fMRI_QC_"
     del nii
 
-    if maskNII is not None:
+    if masknii is not None:
 
         # load mask nifti file
         print("Load Nifti Mask")
-        mknii = nib.load(maskNII)
+        mknii = nib.load(masknii)
         mkdata = mknii.get_fdata()
         mkshape = np.array(mkdata)[:, :, :, 0].shape
         del mknii
@@ -172,7 +174,7 @@ def process(niifile, motionfile, maskthresh, maskNII, outputdirectory, fname, fe
             messagebox.showwarning("Warning", "Mask contains value > 1")
         elif len(mkunique) != 2:
             messagebox.showwarning("Warning", "Mask is not binary")
-        elif sum(shape) - sum(mkshape) != 0:
+        elif sum(shape - mkshape) != 0:
             messagebox.showwarning("Mask dimensions not equal to functional data")
 
         # Apply mask

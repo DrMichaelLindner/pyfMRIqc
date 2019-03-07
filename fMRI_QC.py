@@ -5,34 +5,38 @@ fMRI_QC.py calculates and provides information of a functional MRI nifti file fo
 
 USAGE
     python fmri_qc.py
-    python fmri_qc.py -n <func_nifti_file> -t <mask_threshold>
-    python fmri_qc.py -n <func_nifti_file> -t <mask_threshold> -m <motion_file>
-
+    python fmri_qc.py -n <func_nift_file>
+    python fmri_qc.py -n <func_nift_file> -m <motion_file>
+    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
+    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -k <mask_nift_file>
+    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -k <mask_nift_file> -o <output_path>
 
 INPUT
     -n:   functional MR nifti file
+    -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
     -t:   threshold of mean values for the mask to calculate SNR etc.
-    -m:   (optional) motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
-
+    -k:   mask nifti file
+    -o:   output folder
 All input are optionally: if not defined input dialogs will pop up to select the files manually.
 
 OUTPUT
-fMRI_QC creates the following output files:
-- various nifti images containing:
+It creates the following nifti images as output:
     - MEAN over time
     - VAR over time
     - MASK (binary - containing voxels above the threshold)
     - SNR signal-to-noise ratio
     - SQUARED DIFF
     - SQUARED SCALED DIFF (Squared Diff / Mean Diff)
-- a png image containing the following plots:
+
+a png image containing the following plots:
     - scaled variability: Mean (over all voxel) squared diff plot over time / global mean squared diff
     - slice by slice variability: Mean (mean per slice) squared diff plot over time / global mean squared diff
     - if motion file was selected: sum of relative movements over time (z-scored)
     - scaled mean voxel intensity: mean(data/global mean) )(z-scored)
     - variance of scaled variability (z-scored)
     - min/mean/max slice variability
-- a text file
+
+a text file
     - containing an overview about scan and QC parameters
 
 LICENCE
@@ -54,22 +58,26 @@ import sys
 import getopt
 import nibabel as nib
 import numpy as np
-import matplotlib.pyplot as plt
+import matplotlib
+
+matplotlib.use("TkAgg")
+from matplotlib import pyplot as plt
 import easygui
 from scipy import stats
+from tkinter import messagebox
 
 
 def main():
-
     # check input options
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hn:m:t:o:", ["help"])
+        opts, args = getopt.getopt(sys.argv[1:], "hn:m:t:k:o:", ["help"])
     except getopt.GetoptError:
-        print('python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>')
+        print('python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -k <mask_nift_file>')
         sys.exit(2)
 
     niifile = ''
     motionfile = ''
+    maskNII = ''
     maskthresh = ''
     outputdirectory = ''
 
@@ -80,6 +88,8 @@ def main():
             motionfile = a
         elif o == "-t":
             maskthresh = int(a)
+        elif o == "-k":
+            maskNII == a
         elif o == "-o":
             outputdirectory = a
         elif o in ("-h", "--help"):
@@ -99,7 +109,9 @@ def main():
         maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
                                       default='200')
         maskthresh = int(maskthresh)
-
+    # mask nifti file
+    if maskNII == '':
+        maskNII = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
 
     # get filename
     filepath, filename = os.path.split(niifile)
@@ -125,21 +137,46 @@ def main():
     if motionfile is not None:
         print('Motion parameter file: ' + motionfile)
     print('Mask threshold: ' + str(maskthresh))
+    if maskNII is not None:
+        print('mask nifti file: ' + maskNII)
 
-    process(niifile, motionfile, maskthresh, outputdirectory, fname, fext)
+    process(niifile, motionfile, maskthresh, maskNII, outputdirectory, fname, fext)
 
 
-def process(niifile, motionfile, maskthresh, outputdirectory, fname, fext):
-
+def process(niifile, motionfile, maskthresh, maskNII, outputdirectory, fname, fext):
     # load and get func data
     print("Load File")
     nii = nib.load(niifile)
     data = nii.get_fdata()
+    shape = np.array(data)[:, :, :, 0].shape
     header = nii.header
     affine = nii.affine
     voxelsize = header['pixdim'][1]
     prefix = "fMRI_QC_"
     del nii
+
+    if maskNII is not None:
+
+        # load mask nifti file
+        print("Load Nifti Mask")
+        mknii = nib.load(maskNII)
+        mkdata = mknii.get_fdata()
+        mkshape = np.array(mkdata)[:, :, :, 0].shape
+        del mknii
+
+        # nifti mask validation
+        mkunique = np.unique(mkdata)
+        if np.min(mkunique) < 0:
+            messagebox.showwarning("Warning", "Mask contains value < 0")
+        elif np.max(mkunique) > 1:
+            messagebox.showwarning("Warning", "Mask contains value > 1")
+        elif len(mkunique) != 2:
+            messagebox.showwarning("Warning", "Mask is not binary")
+        elif sum(shape) - sum(mkshape) != 0:
+            messagebox.showwarning("Mask dimensions not equal to functional data")
+
+        # Apply mask
+        data = np.multiply(mkdata, data)
 
     # create mean data and nifti image
     print("Create and save MEAN")
@@ -155,7 +192,7 @@ def process(niifile, motionfile, maskthresh, outputdirectory, fname, fext):
     # create and save mask
     print("Create and save MASK")
     mask = np.where(meandata >= maskthresh, 1, 0)
-    mask2 = np.where((meandata < maskthresh/5) & (meandata > 0), 1, 0)
+    mask2 = np.where((meandata < maskthresh / 5) & (meandata > 0), 1, 0)
     new_img = nib.Nifti1Image(mask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "MASK_" + fname + fext)
     nib.save(new_img, newfilename)
@@ -265,7 +302,6 @@ def process(niifile, motionfile, maskthresh, outputdirectory, fname, fext):
     nib.save(new_img, newfilename)
     del vardata
 
-
     # squared diff
     print("- SQUARED DIFF")
     diff2data = np.power(np.diff(data, axis=3), 2)
@@ -326,9 +362,9 @@ def process(niifile, motionfile, maskthresh, outputdirectory, fname, fext):
         text_file.write("Max absolute Movement: " + str(np.max(rm)) + "\n")
         text_file.write("Mean relative Movement: " + str(np.mean(relrm)) + "\n")
         text_file.write("Max relative Movement: " + str(np.max(relrm)) + "\n")
-        text_file.write("Relative Movements (>0.1mm): " + str(len(nrrm01)) + " volumes\n")
-        text_file.write("Relative Movements (>0.5mm): " + str(len(nrrm05)) + " volumes\n")
-        text_file.write("Relative Movements (>voxelsize): " + str(len(nrrmv)) + " volumes\n")
+        text_file.write("Movements (>0.1mm): " + str(len(nrrm01)) + "\n")
+        text_file.write("Movements (>0.5mm): " + str(len(nrrm05)) + "\n")
+        text_file.write("Movements (>voxelsize): " + str(len(nrrmv)) + "\n")
 
         # add line to plot
         plt.plot(stats.zscore(rmsum), label='sum of relative movements')
@@ -363,21 +399,21 @@ def process(niifile, motionfile, maskthresh, outputdirectory, fname, fext):
 
 def printhelp():
     helptext = """fMRI_QC.py calculates and provides information of a functional MRI nifti file for a quality check.
-    
+
     USAGE
         python fmri_qc.py 
         python fmri_qc.py -n <func_nift_file> 
         python fmri_qc.py -n <func_nift_file> -m <motion_file> 
         python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
         python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -o <output_folder>
-        
+
     INPUT
         -n:   functional MR nifti file 
         -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
         -t:   threshold of mean values for the mask to calculate SNR etc.
         -o:   output folder  
     All input are optionally: if not defined input dialogs will pop up to select the files manually.
-    
+
     OUTPUT
     It creates the following nifti images as output:
         - MEAN over time
@@ -386,7 +422,7 @@ def printhelp():
         - SNR: signal-to-noise ration
         - SQUARED DIFF (squared difference between two consecutive volumes)
         - SQUARED SCALED DIFF (Squared Diff / Mean Diff)  
-    
+
     and the following plots (and saved png):
         - scaled variabiliy: Mean (over all voxel) squared diff plot over time / global mean squared diff
         - slice by slice variabiliy: Mean (per slice) squared diff plot over time / global mean squared diff

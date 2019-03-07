@@ -86,7 +86,7 @@ def main():
             printhelp()
             sys.exit(2)
 
-    # input dialogs if no files are give as input paramter
+    # input dialogs if no files are give as input parameter
     # functional file
     if niifile == '':
         niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")

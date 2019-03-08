@@ -62,9 +62,8 @@ import matplotlib
 
 matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
-# import easygui
 from scipy import stats
-from tkinter import messagebox, filedialog
+from tkinter import messagebox, filedialog, Tk, Text, Button, mainloop
 
 
 def main():
@@ -104,16 +103,34 @@ def main():
                                      filetypes=(("nifti", "*.nii"),("all files","*.*")))
     # motion file
     if motionfile == '':
-        motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)',
-                                         multiple=False, default="*.nii")
+        # motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)', multiple=False, default="*.nii")
+        motionfile = filedialog.askopenfilename(title="Select motion correction files (from FSL or SPM)", multiple=False,
+                                             filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
     # mask threshold
     if maskthresh == '':
-        maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
-                                      default='200')
-        maskthresh = int(maskthresh)
+        # maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',default='200')
+        # maskthresh = int(maskthresh)
+        thresh = Tk()
+
+        def retrieve_input():
+            inputValue = textBox.get("1.0", "end-1c")
+            maskthresh = int(inputValue)
+            print(maskthresh)
+
+        textBox = Text(thresh, height=1, width=25)
+        textBox.pack()
+        buttonCommit = Button(thresh, height=1, width=20, text="Input mask threshold",
+                              command=lambda: retrieve_input())
+        buttonCommit.pack()
+        Button(thresh, height=1, width=20, text="Close input window", command=thresh.destroy).pack()
+        mainloop()
+
     # mask nifti file
     if masknii == '':
-        masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
+       # masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
+        motionfile = filedialog.askopenfilename(title="Select mask file", multiple=False,
+                                             filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
+
 
     # get filename
     filepath, filename = os.path.split(niifile)

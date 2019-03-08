@@ -63,7 +63,8 @@ import matplotlib
 matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 from scipy import stats
-from tkinter import messagebox, filedialog, Tk, Text, Button, mainloop
+import easygui
+# from tkinter import messagebox, filedialog, Tk, Text, Button, mainloop
 
 
 def main():
@@ -98,39 +99,41 @@ def main():
     # input dialogs if no files are give as input parameter
     # functional file
     if niifile == '':
-        # niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
-        niifile = filedialog.askopenfilename(title="Select functional image", multiple=False,
-                                     filetypes=(("nifti", "*.nii"),("all files","*.*")))
+        niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
+        # niifile = filedialog.askopenfilename(title="Select functional image", multiple=False,
+        #                              filetypes=(("nifti", "*.nii"),("all files","*.*")))
     # motion file
     if motionfile == '':
-        # motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)', multiple=False, default="*.nii")
-        motionfile = filedialog.askopenfilename(title="Select motion correction files (from FSL or SPM)", multiple=False,
-                                             filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
+        motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)', multiple=False,
+                                         default="*.nii")
+        # motionfile = filedialog.askopenfilename(title="Select motion correction files (from FSL or SPM)", multiple=False,
+        #                                      filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
+
     # mask threshold
     if maskthresh == '':
-        # maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',default='200')
+        maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
+                                      default='200')
         # maskthresh = int(maskthresh)
-        thresh = Tk()
-
-        def retrieve_input():
-            inputValue = textBox.get("1.0", "end-1c")
-            maskthresh = int(inputValue)
-            print(maskthresh)
-
-        textBox = Text(thresh, height=1, width=25)
-        textBox.pack()
-        buttonCommit = Button(thresh, height=1, width=20, text="Input mask threshold",
-                              command=lambda: retrieve_input())
-        buttonCommit.pack()
-        Button(thresh, height=1, width=20, text="Close input window", command=thresh.destroy).pack()
-        mainloop()
+        # thresh = Tk()
+        #
+        # def retrieve_input():
+        #     inputValue = textBox.get("1.0", "end-1c")
+        #     maskthresh = int(inputValue)
+        #     print(maskthresh)
+        #
+        # textBox = Text(thresh, height=1, width=25)
+        # textBox.pack()
+        # buttonCommit = Button(thresh, height=1, width=20, text="Input mask threshold",
+        #                       command=lambda: retrieve_input())
+        # buttonCommit.pack()
+        # Button(thresh, height=1, width=20, text="Close input window", command=thresh.destroy).pack()
+        # mainloop()
 
     # mask nifti file
-    if masknii == '':
-       # masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
-        motionfile = filedialog.askopenfilename(title="Select mask file", multiple=False,
-                                             filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
-
+    if masknii == '' & maskthresh == '':
+       masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
+       # motionfile = filedialog.askopenfilename(title="Select mask file", multiple=False,
+       #                                      filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
 
     # get filename
     filepath, filename = os.path.split(niifile)
@@ -163,6 +166,7 @@ def main():
 
 
 def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fext):
+
     # load and get func data
     print("Load File")
     nii = nib.load(niifile)
@@ -186,16 +190,21 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
         # nifti mask validation
         mkunique = np.unique(mkdata)
         if np.min(mkunique) < 0:
-            messagebox.showwarning("Warning", "Mask contains value < 0")
+            easygui.msgbox("Warning", "Mask contains value < 0")
         elif np.max(mkunique) > 1:
-            messagebox.showwarning("Warning", "Mask contains value > 1")
+            easygui.msgbox("Warning", "Mask contains value > 1")
         elif len(mkunique) != 2:
-            messagebox.showwarning("Warning", "Mask is not binary")
-        elif sum(shape - mkshape) != 0:
-            messagebox.showwarning("Mask dimensions not equal to functional data")
+            easygui.msgbox("Warning", "Mask is not binary")
+        elif sum(np.asarray(shape) - np.asarray(mkshape)) != 0:
+            easygui.msgbox("Mask dimensions not equal to functional data")
 
         # Apply mask
-        data = np.multiply(mkdata, data)
+
+        s = np.asarray(np.asarray(np.array(data)).shape)
+        #data = np.empty((s[0], s[1], s[2], s[3]))
+        for ii in range(s[3]):
+            data[:, :, :, ii] = np.multiply(mkdata[:, :, :, 0], data[:, :, :, ii])
+
 
     # create mean data and nifti image
     print("Create and save MEAN")

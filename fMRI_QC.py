@@ -130,7 +130,7 @@ def main():
         # mainloop()
 
     # mask nifti file
-    if masknii == '' & maskthresh == '':
+    if masknii == '' and maskthresh == None:
        masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
        # motionfile = filedialog.askopenfilename(title="Select mask file", multiple=False,
        #                                      filetypes=(("nifti", "*.nii"), ("all files", "*.*")))

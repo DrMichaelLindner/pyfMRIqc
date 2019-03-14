@@ -111,8 +111,9 @@ def main():
 
     # mask threshold
     if maskthresh == '':
-        maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
+        maskthresh = easygui.integerbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
                                       default='200')
+
         # maskthresh = int(maskthresh)
         # thresh = Tk()
         #
@@ -132,6 +133,7 @@ def main():
     # mask nifti file
     if masknii == '' and maskthresh == None:
        masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
+       maskthresh = 0
        # motionfile = filedialog.askopenfilename(title="Select mask file", multiple=False,
        #                                      filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
 

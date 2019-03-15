@@ -20,7 +20,8 @@ fMRI_QC.py will guide the user through input dialogs to manually select/define t
         
 
 ## *Input*
-        -n:   functional MR nifti file
+        
+	-n:   functional MR nifti file
 	-m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
 	-s:   percentage of low values outside the mask for SNR calculation
 	-o:   output directory

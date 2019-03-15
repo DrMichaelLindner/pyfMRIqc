@@ -2,22 +2,28 @@
 
 """
 fMRI_QC.py calculates and provides information of a functional MRI nifti file for a quality check.
+fMRI_QC.py can be used by giving input parameter or without input parameter. If no input parameter are defined
+fMRI_QC.py will guide the user through input dialogs to manually select/define the input
 
 USAGE
-    python fmri_qc.py
-    python fmri_qc.py -n <func_nift_file>
-    python fmri_qc.py -n <func_nift_file> -m <motion_file>
-    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
-    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -k <mask_nift_file>
-    python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -k <mask_nift_file> -o <output_path>
+    without input parameter:
+        python fmri_qc.py
+
+    with input parameter:
+        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
+        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
+        either
+            python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
+        or
+            python fmri_qc.py -n <func_nift_file> -m <motion_file> -k <mask_nift_file>
 
 INPUT
     -n:   functional MR nifti file
     -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
     -t:   threshold of mean values for the mask to calculate SNR etc.
+    -s:   percentage of low values outside the mask for SNR calculation
     -k:   mask nifti file
-    -o:   output folder
-All input are optionally: if not defined input dialogs will pop up to select the files manually.
+    -o:   output directory
 
 OUTPUT
 It creates the following nifti images as output:
@@ -70,72 +76,90 @@ import easygui
 def main():
     # check input options
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hn:m:t:k:o:", ["help"])
+        opts, args = getopt.getopt(sys.argv[1:], "hn:m:t:k:s:o:", ["help"])
     except getopt.GetoptError:
-        print('python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -k <mask_nift_file>')
+        print('INPUT ERROR:')
+        printhelp()
         sys.exit(2)
 
     niifile = ''
     motionfile = ''
-    masknii = ''
-    maskthresh = ''
+    maskniifile = None
+    maskthresh = None
     outputdirectory = ''
+    snrvoxelpercentage = ''
 
-    for o, a in opts:
-        if o == "-n":
-            niifile = a
-        elif o == "-m":
-            motionfile = a
-        elif o == "-t":
-            maskthresh = int(a)
-        elif o == "-k":
-            masknii == a
-        elif o == "-o":
-            outputdirectory = a
-        elif o in ("-h", "--help"):
-            printhelp()
+    if len(opts)>0:
+
+        # check parameter input
+        for o, a in opts:
+            if o == "-n":
+                niifile = a
+            elif o == "-m":
+                motionfile = a
+            elif o == "-t":
+                maskthresh = int(a)
+            elif o == "-k":
+                maskniifile = a
+            elif o == "-s":
+                snrvoxelpercentage = int(a)
+            elif o == "-o":
+                outputdirectory = a
+            elif o in ("-h", "--help"):
+                printhelp()
+                sys.exit(2)
+
+        if motionfile == '':
+            motionfile = None
+        if snrvoxelpercentage == '':
+            snrvoxelpercentage = 5
+
+        # check possible input errors and minimum requirements
+        if niifile == '':
+            print("INPUT ERROR (missing input): functional nifti file needs to be defined (-n). See fMRI_QC.py -h")
+            sys.exit(2)
+        if maskniifile is not None and maskthresh is not None:
+            print("INPUT ERROR: Only mask (-k) or threshold (-t) can be defined. See fMRI_QC.py -h")
+            sys.exit(2)
+        if maskniifile is None and maskthresh is None:
+            print("INPUT ERROR (missing input): mask (-k) or threshold (-t) need to be defined. See fMRI_QC.py -h")
             sys.exit(2)
 
-    # input dialogs if no files are give as input parameter
-    # functional file
-    if niifile == '':
-        niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
-        # niifile = filedialog.askopenfilename(title="Select functional image", multiple=False,
-        #                              filetypes=(("nifti", "*.nii"),("all files","*.*")))
-    # motion file
-    if motionfile == '':
-        motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)', multiple=False,
-                                         default="*.nii")
-        # motionfile = filedialog.askopenfilename(title="Select motion correction files (from FSL or SPM)", multiple=False,
-        #                                      filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
+    else:
+        # input dialogs if no files are give as input parameter
+        # functional file
+        if niifile == '':
+            niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
 
-    # mask threshold
-    if maskthresh == '':
-        maskthresh = easygui.integerbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
+        # motion file
+        if motionfile == '':
+            motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)', multiple=False,
+                                         default="*.nii")
+
+        # mask threshold
+        if maskthresh == None:
+            maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
                                       default='200')
 
-        # maskthresh = int(maskthresh)
-        # thresh = Tk()
-        #
-        # def retrieve_input():
-        #     inputValue = textBox.get("1.0", "end-1c")
-        #     maskthresh = int(inputValue)
-        #     print(maskthresh)
-        #
-        # textBox = Text(thresh, height=1, width=25)
-        # textBox.pack()
-        # buttonCommit = Button(thresh, height=1, width=20, text="Input mask threshold",
-        #                       command=lambda: retrieve_input())
-        # buttonCommit.pack()
-        # Button(thresh, height=1, width=20, text="Close input window", command=thresh.destroy).pack()
-        # mainloop()
+            if maskthresh is not None:
+                maskthresh = int(maskthresh)
 
-    # mask nifti file
-    if masknii == '' and maskthresh == None:
-       masknii = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
-       maskthresh = 0
-       # motionfile = filedialog.askopenfilename(title="Select mask file", multiple=False,
-       #                                      filetypes=(("nifti", "*.nii"), ("all files", "*.*")))
+
+        # mask nifti file
+        if maskniifile == None and maskthresh == None:
+            maskniifile = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
+
+        # get SNR percentage value
+        snrvoxelpercentage = easygui.enterbox(title='Percentage of low value voxels for SNR calculation',
+                                              msg='Specify as percentage of low value voxels for SNR calculation. (e.g. 25% = 25 not 0.25)',
+                                              default='5')
+        snrvoxelpercentage.replace('%', '')
+        snrvoxelpercentage = int(snrvoxelpercentage)
+        if snrvoxelpercentage is None:
+            snrvoxelpercentage = 5
+        elif snrvoxelpercentage == 0:
+            snrvoxelpercentage = 5
+
 
     # get filename
     filepath, filename = os.path.split(niifile)
@@ -161,15 +185,15 @@ def main():
     if motionfile is not None:
         print('Motion parameter file: ' + motionfile)
     print('Mask threshold: ' + str(maskthresh))
-    if masknii is not None:
-        print('mask nifti file: ' + masknii)
+    if maskniifile is not None:
+        print('mask nifti file: ' + maskniifile)
 
-    process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fext)
+    process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage)
 
 
-def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fext):
+def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage):
 
-    # load and get func data
+    # Load and get func data
     print("Load File")
     nii = nib.load(niifile)
     data = nii.get_fdata()
@@ -177,38 +201,11 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
     header = nii.header
     affine = nii.affine
     voxelsize = header['pixdim'][1]
+    nrvoxel = shape[0] * shape[1] * shape[2]
     prefix = "fMRI_QC_"
     del nii
 
-    if masknii is not None:
-
-        # load mask nifti file
-        print("Load Nifti Mask")
-        mknii = nib.load(masknii)
-        mkdata = mknii.get_fdata()
-        mkshape = np.array(mkdata)[:, :, :, 0].shape
-        del mknii
-
-        # nifti mask validation
-        mkunique = np.unique(mkdata)
-        if np.min(mkunique) < 0:
-            easygui.msgbox("Warning", "Mask contains value < 0")
-        elif np.max(mkunique) > 1:
-            easygui.msgbox("Warning", "Mask contains value > 1")
-        elif len(mkunique) != 2:
-            easygui.msgbox("Warning", "Mask is not binary")
-        elif sum(np.asarray(shape) - np.asarray(mkshape)) != 0:
-            easygui.msgbox("Mask dimensions not equal to functional data")
-
-        # Apply mask
-
-        s = np.asarray(np.asarray(np.array(data)).shape)
-        #data = np.empty((s[0], s[1], s[2], s[3]))
-        for ii in range(s[3]):
-            data[:, :, :, ii] = np.multiply(mkdata[:, :, :, 0], data[:, :, :, ii])
-
-
-    # create mean data and nifti image
+    # Create mean data and nifti image
     print("Create and save MEAN")
     meandata = np.mean(data, axis=3)
     meandata = meandata.astype(np.int16)
@@ -219,19 +216,67 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
     newfilename = os.path.join(outputdirectory, prefix + "MEAN_" + fname + fext)
     nib.save(new_img, newfilename)
 
-    # create and save mask
-    print("Create and save MASK")
-    mask = np.where(meandata >= maskthresh, 1, 0)
-    mask2 = np.where((meandata < maskthresh / 5) & (meandata > 0), 1, 0)
+    # Create SNR mask
+    meandata4snr = np.mean(data, axis=3)
+    # Get lower n precent
+    vec = meandata4snr.reshape(1, nrvoxel)
+    vec = np.sort(vec, axis=1)
+    snrvoxelmean = np.mean(vec[0][0:int(nrvoxel * snrvoxelpercentage / 100)])
+    snrvoxelstd = np.std(vec[0][0:int(nrvoxel * snrvoxelpercentage / 100)])
+    snrvoxelmin = vec[0][0]
+    snrvoxelmax = vec[0][int(nrvoxel * snrvoxelpercentage / 100)]
+    snrvoxelnr = np.max(vec[0])
+    snrmask = np.where((meandata4snr < vec[0][int(nrvoxel * snrvoxelpercentage / 100)]) & (meandata4snr > 0), 1, 0)
+    # Mean noise for SNR
+    meannoise = np.mean(meandata4snr[snrmask == 1])
+    # Save SNR mask
+    new_img_snr = nib.Nifti1Image(snrmask, affine, header)
+    newfilename = os.path.join(outputdirectory, prefix + "MASK4SNR_" + fname + fext)
+    nib.save(new_img_snr, newfilename)
+
+    # Create or load mask depending on user input
+    if maskthresh is not None: # in threshold of mask input
+        # Create mask
+        print("Create and save MASK")
+        mask = np.where(meandata >= maskthresh, 1, 0)
+    elif maskniifile is not None: # in case of mask input
+        # Load mask nifti file
+        print("Load Nifti Mask")
+        masknii = nib.load(maskniifile)
+        maskdata = masknii.get_fdata()
+        maskshape = np.array(maskdata)[:, :, :, 0].shape
+        mask = np.asarray(maskdata)
+        mask = mask[:,:,:,0]
+        del masknii
+        # nifti mask validation
+        print("Check Nifti Mask")
+        maskunique = np.unique(maskdata)
+        if np.min(maskunique) < 0:
+            easygui.msgbox("Warning", "Mask contains value < 0")
+        elif np.max(maskunique) > 1:
+            easygui.msgbox("Warning", "Mask contains value > 1")
+        elif len(maskunique) != 2:
+            easygui.msgbox("Warning", "Mask is not binary")
+        elif sum(np.asarray(shape) - np.asarray(maskshape)) != 0:
+            easygui.msgbox("Mask dimensions not equal to functional data")
+
+    # Save mask
     new_img = nib.Nifti1Image(mask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "MASK_" + fname + fext)
     nib.save(new_img, newfilename)
 
-    # open text file
+    # Apply mask
+    s = np.asarray(np.asarray(np.array(data)).shape)
+    # data = np.empty((s[0], s[1], s[2], s[3]))
+    for ii in range(s[3]):
+        data[:, :, :, ii] = np.multiply(mask, data[:, :, :, ii])
+
+    # Open text file
     print("Create text file")
     textfilename = os.path.join(outputdirectory, prefix + "textfile_" + fname + ".txt")
     text_file = open(textfilename, "w")
-    text_file.write("SCAN PARAMETERS: \n\n")
+    # Add scanparameter and user input text file
+    text_file.write("SCAN PARAMETERS AND USER INPUT: \n\n")
     text_file.write("Slice Resolution: " + str(header['dim'][1]) + "x" + str(header['dim'][2]) + "\n")
     text_file.write("Num slices: " + str(header['dim'][3]) + "\n")
     text_file.write("Num Volumes: " + str(data.shape[3]) + "\n")
@@ -241,20 +286,26 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
     text_file.write("Total Num Voxels: " + str(data.shape[0] * data.shape[1] * data.shape[2]) + "\n")
     text_file.write("Mask Threshold: " + str(maskthresh) + "\n")
     text_file.write("Num Mask Voxels: " + str(np.sum(mask)) + "\n")
+    text_file.write("Percentage of voxel with lowest values for SNR: " + str(snrvoxelpercentage) + "\n")
+    text_file.write("  SNR nr of lowest voxel: " + str(snrvoxelnr) + "\n")
+    text_file.write("  SNR voxel MEAN: " + str(snrvoxelmean) + "\n")
+    text_file.write("  SNR voxel STD: " + str(snrvoxelstd) + "\n")
+    text_file.write("  SNR voxel value range: " + str(snrvoxelmin) + " - " + str(snrvoxelmin) + "\n")
 
-    text_file.write("------------------------------------ \n\n")
+    if maskniifile is not None:
+        text_file.write("Mask file: " + maskniifile + "\n")
+    text_file.write("\n------------------------------------ \n\n")
     text_file.write("QC OVERVIEW: \n\n")
-
     text_file.write("Mean: " + str(np.mean(data)) + "\n")
     text_file.write("Mean (mask): " + str(np.mean(data[mask == 1])) + "\n")
     text_file.write("SD: " + str(np.std(data)) + "\n")
     text_file.write("SD (mask): " + str(np.std(data[mask == 1])) + "\n")
 
-    # load and get motion data if specified
-    plotnr = 4
+
+    # Load and get motion data if specified
     if motionfile is not None:
         print("Load Motion Parameters")
-        # load motion file
+        # Load motion file
         x, motionext = os.path.splitext(motionfile)
         rm = np.loadtxt(motionfile)
 
@@ -289,23 +340,27 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
 
     # signal to noise ratio
     print("- SNR")
-    meannoise = np.mean(meandata[mask2 == 1])
+    # calculate SNR
     snrdata = np.divide(meandata, meannoise)
-
+    # mean SNR over slice
     snrvec = np.zeros((snrdata.shape[2], 1))
     for ii in range(snrdata.shape[2]):
         snrslice = snrdata[:, :, ii]
-        snrvec[ii] = np.mean(snrslice[mask[:, :, ii] == 1])
+        maskslice = mask[:, :, ii]
+        if np.sum(maskslice) > 0:
+            snrvec[ii] = np.nanmean(snrslice[maskslice == 1])
+        else:
+            snrvec[ii] = np.nan
 
     # add snr to text file
     text_file.write("\nSignal-To-Noise Ratio: \n")
-    text_file.write("Min Slice SNR: " + str(np.min(snrvec)) + "\n")
-    text_file.write("Max Slice SNR: " + str(np.max(snrvec)) + "\n")
+    text_file.write("Min Slice SNR: " + str(np.nanmin(snrvec)) + "\n")
+    text_file.write("Max Slice SNR: " + str(np.nanmax(snrvec)) + "\n")
     text_file.write("ALL Slice SNRs: ")
     for ii in range(len(snrvec)):
         text_file.write(str(snrvec[ii]) + " ")
     text_file.write("\n")
-    text_file.write("Mean voxel SNR: " + str(np.mean(snrvec)) + "\n")
+    text_file.write("Mean voxel SNR: " + str(np.nanmean(snrvec)) + "\n")
 
     # save SNR nifti
     snrdata = snrdata.astype(np.int16)
@@ -325,8 +380,8 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
     vardata = np.var(data, axis=3)
     vardata = vardata.astype(np.int32)
     header2 = header
-    header2['glmin'] = np.min(vardata)
-    header2['glmax'] = np.max(vardata)
+    header2['glmin'] = np.nanmin(vardata)
+    header2['glmax'] = np.nanmax(vardata)
     new_img = nib.Nifti1Image(vardata, affine, header2)
     newfilename = os.path.join(outputdirectory, prefix + "VAR_" + fname + fext)
     nib.save(new_img, newfilename)
@@ -358,6 +413,7 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
     # plot data
     # ------------------
     print("Create Plot")
+    plotnr = 4
     fig = plt.figure(frameon=False)
     fig.set_size_inches(12, 14)
 
@@ -429,20 +485,29 @@ def process(niifile, motionfile, maskthresh, masknii, outputdirectory, fname, fe
 
 def printhelp():
     helptext = """fMRI_QC.py calculates and provides information of a functional MRI nifti file for a quality check.
+        fMRI_QC.py can be used by giving input parameter or without input parameter. If no input parameter are defined 
+        fMRI_QC.py will guide the user through input dialogs to manually select/define the input 
 
     USAGE
-        python fmri_qc.py 
-        python fmri_qc.py -n <func_nift_file> 
-        python fmri_qc.py -n <func_nift_file> -m <motion_file> 
-        python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
-        python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold> -o <output_folder>
+        without input parameter:
+            python fmri_qc.py
+    
+        with input parameter:
+            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
+            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
+            either
+                python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -t <mask_threshold>
+            or
+                python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -k <mask_nift_file>
 
     INPUT
-        -n:   functional MR nifti file 
+        -n:   functional MR nifti file
         -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
+        -s:   percentage of low values outside the mask for SNR calculation
         -t:   threshold of mean values for the mask to calculate SNR etc.
-        -o:   output folder  
-    All input are optionally: if not defined input dialogs will pop up to select the files manually.
+        -k:   mask nifti file
+        -o:   output directory
+
 
     OUTPUT
     It creates the following nifti images as output:

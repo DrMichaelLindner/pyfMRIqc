@@ -1,19 +1,34 @@
 # fMRI_QC
 fMRI_QC.py calculates and provides information of a given functional MRI nifti file for a quality check.
+fMRI_QC.py can be used by giving input parameter or without input parameter. If no input parameter are defined
+fMRI_QC.py will guide the user through input dialogs to manually select/define the input
+
+## *USAGE*
 
 
-## *Usage*
-        python fmri_qc.py 
-        python fmri_qc.py -n <func_nift_file> 
-        python fmri_qc.py -n <func_nift_file> -m <motion_file> 
-        python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
+### *without input parameter*
+        python fmri_qc.py
+		
+		
+### *with input parameter*
+        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
+        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
+        either
+            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -t <mask_threshold>
+        or
+            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -k <mask_nift_file>
         
-        
+
 ## *Input*
-        -n:   functional MR nifti file 
-        -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
-        -t:   threshold of mean values for the mask to calculate SNR etc.
-    All input are optionally: if not defined input dialogs will pop up to select the files manually.
+        -n:   functional MR nifti file
+		-m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
+		-s:   percentage of low values outside the mask for SNR calculation
+		-o:   output directory
+		either
+		-t:   threshold of mean values for the mask to calculate QC etc.
+		or
+		-k:   nifti file containing 3D binary mask to calculate QC
+    
     
     
 ## *Output*
@@ -22,7 +37,8 @@ fMRI_QC.py creates the following outputs:
 nifti files
     - MEAN over time
     - VAR over time
-    - MASK (binary - containing voxels above the threshold)
+    - MASK (binary - containing voxels above the threshold or the input mask)
+    - MASK4SNR (binary - lowest n percent of lowest valuues used for SNR calculation)
     - SNR signal-to-noise ratio
     - SQUARED DIFF
     - SQUARED SCALED DIFF (Squared Diff / Mean Diff)

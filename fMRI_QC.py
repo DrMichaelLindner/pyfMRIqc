@@ -216,6 +216,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     new_img = nib.Nifti1Image(meandata, affine, header2)
     newfilename = os.path.join(outputdirectory, prefix + "MEAN_" + fname + fext)
     nib.save(new_img, newfilename)
+    # create png
+    pngfilename = os.path.join(outputdirectory, prefix + 'Mean.png')
+    nii2image(meandata, 'Mean', pngfilename)
 
     # Create SNR mask
     meandata4snr = np.mean(data, axis=3)
@@ -343,6 +346,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     print("- SNR")
     # calculate SNR
     snrdata = np.divide(meandata, meannoise)
+    # create png
+    pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
+    nii2image(snrdata, 'SNR', pngfilename)
     # mean SNR over slice
     snrvec = np.zeros((snrdata.shape[2], 1))
     for ii in range(snrdata.shape[2]):
@@ -379,7 +385,10 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # variance
     print("- VAR")
     vardata = np.var(data, axis=3)
+    # create png
     vardata = vardata.astype(np.int32)
+    pngfilename = os.path.join(outputdirectory, prefix + 'Variance.png')
+    nii2image(vardata, 'Variance', pngfilename)
     header2 = header
     header2['glmin'] = np.nanmin(vardata)
     header2['glmax'] = np.nanmax(vardata)
@@ -482,6 +491,50 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     print("\nThank you for using this tool!")
     print("    Michael Lindner")
+
+
+def nii2image(img3D, cond, pngfilename):
+
+    matdim = np.ceil(np.sqrt(img3D.shape[2]))
+    slice_x = img3D.shape[0]
+    slice_y = img3D.shape[0]
+    img_x = int(matdim * slice_x)
+    img_y = int(matdim * slice_y)
+    image = np.zeros((img_x, img_y))
+    cx = 0
+    cy = 0
+    for ii in reversed(range(img3D.shape[2])):
+        f = img3D[:, :, ii]
+        image[cy:cy + slice_y, cx:cx + slice_x] = np.rot90(f)
+
+        cx += slice_x
+        if cx >= img_x:
+            cx = 0
+            cy += slice_y
+
+    if cond == 'Variance':
+        h = np.histogram(image, bins=1000)
+        thr = h[1][max(np.argwhere(h[0] > 400))]
+        vmax = thr[0]
+        title = cond + ' (threshold < ' + str(vmax) + ')'
+    else:
+        vmax = img3D.max()
+        title = cond
+
+    dpi = 300
+    margin = 0.05
+    figsize = (1 + margin) * img_y / dpi, (1 + margin) * img_x / dpi
+    fig = plt.figure(figsize=figsize, dpi=dpi)
+    extent = (0, img_x * 3, img_y * 3, 0)
+
+    plt.imshow(image, vmax=vmax, extent=extent, interpolation=None, cmap='gray')
+    plt.axis('off')
+    plt.title(title)
+
+    plt.savefig(pngfilename)
+    # plt.show()
+
+
 
 
 def printhelp():

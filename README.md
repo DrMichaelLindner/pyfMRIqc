@@ -21,38 +21,39 @@ fMRI_QC.py will guide the user through input dialogs to manually select/define t
 
 ## *Input*
         -n:   functional MR nifti file
-		-m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
-		-s:   percentage of low values outside the mask for SNR calculation
-		-o:   output directory
-		either
-		-t:   threshold of mean values for the mask to calculate QC etc.
-		or
-		-k:   nifti file containing 3D binary mask to calculate QC
+	-m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
+	-s:   percentage of low values outside the mask for SNR calculation
+	-o:   output directory
+	either
+	-t:   threshold of mean values for the mask to calculate QC etc.
+	or
+	-k:   nifti file containing 3D binary mask to calculate QC
     
     
     
 ## *Output*
 fMRI_QC.py creates the following outputs:
 
-nifti files
-    - MEAN over time
-    - VAR over time
-    - MASK (binary - containing voxels above the threshold or the input mask)
-    - MASK4SNR (binary - lowest n percent of lowest valuues used for SNR calculation)
-    - SNR signal-to-noise ratio
-    - SQUARED DIFF
-    - SQUARED SCALED DIFF (Squared Diff / Mean Diff)
+### *Nifti files:*
 
-a png image containing the following plots:
-    - scaled variability: Mean (over all voxel) squared diff plot over time / global mean squared diff
-    - slice by slice variability: Mean (mean per slice) squared diff plot over time / global mean squared diff
-    - if motion file was selected: sum of relative movements over time (z-scored)
-    - scaled mean voxel intensity: mean(data/global mean) )(z-scored)
-    - variance of scaled variability (z-scored)
-    - min/mean/max slice variability
+	- MEAN over time
+	- VAR over time
+	- MASK (binary - containing voxels above the threshold or the input mask)
+	- MASK4SNR (binary - lowest n percent of lowest valuues used for SNR calculation)
+	- SNR signal-to-noise ratio
+	- SQUARED DIFF
+	- SQUARED SCALED DIFF (Squared Diff / Mean Diff)
 
-a text file
-    -  containing an overview about scan and QC parameters
+### *a png image containing the following plots:*
+	- scaled variability: Mean (over all voxel) squared diff plot over time / global mean squared diff
+	- slice by slice variability: Mean (mean per slice) squared diff plot over time / global mean squared diff
+	- if motion file was selected: sum of relative movements over time (z-scored)
+	- scaled mean voxel intensity: mean(data/global mean) )(z-scored)
+	- variance of scaled variability (z-scored)
+	- min/mean/max slice variability
+
+### *a text file:*
+	-  containing an overview about scan and QC parameters
 
 See guidelines about the output in the [Wiki](https://github.com/DrMichaelLindner/fMRI_QC/wiki)
 

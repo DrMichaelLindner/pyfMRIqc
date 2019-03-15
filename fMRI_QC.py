@@ -514,7 +514,8 @@ def printhelp():
     It creates the following nifti images as output:
         - MEAN over time
         - VAR over time
-        - MASK (containing voxels above the threshold)
+        - MASK (binary - containing voxels above the threshold or the input mask)
+        - MASK4SNR (binary - lowest n percent of lowest valuues used for SNR calculation)
         - SNR: signal-to-noise ration
         - SQUARED DIFF (squared difference between two consecutive volumes)
         - SQUARED SCALED DIFF (Squared Diff / Mean Diff)  

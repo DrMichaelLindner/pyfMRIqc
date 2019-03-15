@@ -13,9 +13,9 @@ USAGE
         python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
         python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
         either
-            python fmri_qc.py -n <func_nift_file> -m <motion_file> -t <mask_threshold>
+            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -t <mask_threshold>
         or
-            python fmri_qc.py -n <func_nift_file> -m <motion_file> -k <mask_nift_file>
+            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -k <mask_nift_file>
 
 INPUT
     -n:   functional MR nifti file
@@ -29,7 +29,8 @@ OUTPUT
 It creates the following nifti images as output:
     - MEAN over time
     - VAR over time
-    - MASK (binary - containing voxels above the threshold)
+    - MASK (binary - containing voxels above the threshold or the input mask)
+    - MASK4SNR (binary - lowest n percent of lowest valuues used for SNR calculation)
     - SNR signal-to-noise ratio
     - SQUARED DIFF
     - SQUARED SCALED DIFF (Squared Diff / Mean Diff)

@@ -275,6 +275,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     for ii in range(s[3]):
         data[:, :, :, ii] = np.multiply(mask, data[:, :, :, ii])
 
+    # # create voxel by time matrix
+    # midx = np.where(mask == 1)
+    # voxelxtime = np.zeros((len(midx[0]), data.shape[3]))
+    # for ii in range(len(midx[0])):
+    #     voxelxtime[ii, :] = data[midx[0][ii], midx[1][ii], midx[2][ii], :]
+
     # Open text file
     print("Create text file")
     textfilename = os.path.join(outputdirectory, prefix + "textfile_" + fname + ".txt")

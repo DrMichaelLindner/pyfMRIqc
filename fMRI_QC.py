@@ -71,6 +71,8 @@ matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
 from scipy import stats
 import easygui
+
+
 # from tkinter import messagebox, filedialog, Tk, Text, Button, mainloop
 
 
@@ -90,7 +92,7 @@ def main():
     outputdirectory = ''
     snrvoxelpercentage = ''
 
-    if len(opts)>0:
+    if len(opts) > 0:
 
         # check parameter input
         for o, a in opts:
@@ -135,16 +137,15 @@ def main():
         # motion file
         if motionfile == '':
             motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)', multiple=False,
-                                         default="*.nii")
+                                             default="*.nii")
 
         # mask threshold
         if maskthresh == None:
             maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
-                                      default='200')
+                                          default='200')
 
             if maskthresh is not None:
                 maskthresh = int(maskthresh)
-
 
         # mask nifti file
         if maskniifile == None and maskthresh == None:
@@ -160,7 +161,6 @@ def main():
             snrvoxelpercentage = 5
         elif snrvoxelpercentage == 0:
             snrvoxelpercentage = 5
-
 
     # get filename
     filepath, filename = os.path.split(niifile)
@@ -193,7 +193,6 @@ def main():
 
 
 def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage):
-
     # Load and get func data
     print("Load File")
     nii = nib.load(niifile)
@@ -216,6 +215,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     new_img = nib.Nifti1Image(meandata, affine, header2)
     newfilename = os.path.join(outputdirectory, prefix + "MEAN_" + fname + fext)
     nib.save(new_img, newfilename)
+    # create png
+    pngfilename = os.path.join(outputdirectory, prefix + 'Mean.png')
+    nii2image(meandata, 'Mean', pngfilename)
 
     # Create SNR mask
     meandata4snr = np.mean(data, axis=3)
@@ -236,18 +238,18 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     nib.save(new_img_snr, newfilename)
 
     # Create or load mask depending on user input
-    if maskthresh is not None: # in threshold of mask input
+    if maskthresh is not None:  # in threshold of mask input
         # Create mask
         print("Create and save MASK")
         mask = np.where(meandata >= maskthresh, 1, 0)
-    elif maskniifile is not None: # in case of mask input
+    elif maskniifile is not None:  # in case of mask input
         # Load mask nifti file
         print("Load Nifti Mask")
         masknii = nib.load(maskniifile)
         maskdata = masknii.get_fdata()
         maskshape = np.array(maskdata)[:, :, :, 0].shape
         mask = np.asarray(maskdata)
-        mask = mask[:,:,:,0]
+        mask = mask[:, :, :, 0]
         del masknii
         # nifti mask validation
         print("Check Nifti Mask")
@@ -302,7 +304,6 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     text_file.write("SD: " + str(np.std(data)) + "\n")
     text_file.write("SD (mask): " + str(np.std(data[mask == 1])) + "\n")
 
-
     # Load and get motion data if specified
     if motionfile is not None:
         print("Load Motion Parameters")
@@ -343,6 +344,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     print("- SNR")
     # calculate SNR
     snrdata = np.divide(meandata, meannoise)
+    # create png
+    pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
+    nii2image(snrdata, 'SNR', pngfilename)
     # mean SNR over slice
     snrvec = np.zeros((snrdata.shape[2], 1))
     for ii in range(snrdata.shape[2]):
@@ -379,7 +383,10 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # variance
     print("- VAR")
     vardata = np.var(data, axis=3)
+    # create png
     vardata = vardata.astype(np.int32)
+    pngfilename = os.path.join(outputdirectory, prefix + 'Variance.png')
+    nii2image(vardata, 'Variance', pngfilename)
     header2 = header
     header2['glmin'] = np.nanmin(vardata)
     header2['glmax'] = np.nanmax(vardata)
@@ -478,10 +485,92 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     plt.savefig(newfilename)
     # plt.show()
 
+    # Open html file
+    print("Create html file")
+    htmlfilename = os.path.join(outputdirectory, prefix + "html_" + fname + ".html")
+    html_output = open(htmlfilename, 'w')
+    html_output.write("<html><head><title></title></head>")
+    html_output.write("<body> <p>" + fname + " fMRI_QC output <p>")
+
+    # Add scan parameters and user input to html file
+    html_output.write("<p>SCAN PARAMETERS AND USER INPUT: <p>")
+    html_output.write("<p>Slice Resolution: " + str(header['dim'][1]) + "x" + str(header['dim'][2]) + "<p>")
+    html_output.write("<p>Num slices: " + str(header['dim'][3]) + "<p>")
+    html_output.write("<p>Num Volumes: " + str(data.shape[3]) + "<p>")
+    html_output.write(
+        "<p>Voxel Size: " + str(header['pixdim'][1]) + "x" + str(header['pixdim'][2]) + "x" + str(header['pixdim'][3])
+        + "<p>")
+    html_output.write("<p>Total Num Voxels: " + str(data.shape[0] * data.shape[1] * data.shape[2]) + "<p>")
+    html_output.write("<p>Mask Threshold: " + str(maskthresh) + "<p>")
+    html_output.write("<p>Num Mask Voxels: " + str(np.sum(mask)) + "<p>")
+    html_output.write("<p>Percentage of voxel with lowest values for SNR: " + str(snrvoxelpercentage) + "<p>")
+    html_output.write("<p>SNR nr of lowest voxel: " + str(snrvoxelnr) + "<p>")
+    html_output.write("<p>SNR voxel MEAN: " + str(snrvoxelmean) + "<p>")
+    html_output.write("<p>SNR voxel STD: " + str(snrvoxelstd) + "<p>")
+    html_output.write("<p>SNR voxel value range: " + str(snrvoxelmin) + " - " + str(snrvoxelmin) + "<p>")
+
+    if maskniifile is not None:
+        html_output.write("<p>Mask file: " + maskniifile + "<p>")
+
+    html_output.write("<p>------------------------------------<p>")
+    html_output.write("<p>QC OVERVIEW:<p>")
+    html_output.write("<p>Mean: " + str(np.mean(data)) + "<p>")
+    html_output.write("<p>Mean (mask): " + str(np.mean(data[mask == 1])) + "<p>")
+    html_output.write("<p>SD: " + str(np.std(data)) + "<p>")
+    html_output.write("<p>SD (mask): " + str(np.std(data[mask == 1])) + "<p>")
+
+    # Add images to html file
+    html_output.write("""<p> Mean voxel signal <p> <img src="fMRI_QC_Mean.png" alt="Mean signal from functional image"> """)
+    html_output.write("""<p> Voxel signal to noise ratio <p> <img src="fMRI_QC_SNR.png" alt="SNR from functional image"> """)
+    html_output.write("""<p> Voxel signal variance <p> <img src="fMRI_QC_Variance.png" alt="Signal variance from functional image"> """)
+    html_output.write("</body></html>")
+    html_output.close()
+
     print("DONE!")
 
     print("\nThank you for using this tool!")
     print("    Michael Lindner")
+
+
+def nii2image(img3D, cond, pngfilename):
+    matdim = np.ceil(np.sqrt(img3D.shape[2]))
+    slice_x = img3D.shape[0]
+    slice_y = img3D.shape[0]
+    img_x = int(matdim * slice_x)
+    img_y = int(matdim * slice_y)
+    image = np.zeros((img_x, img_y))
+    cx = 0
+    cy = 0
+    for ii in reversed(range(img3D.shape[2])):
+        f = img3D[:, :, ii]
+        image[cy:cy + slice_y, cx:cx + slice_x] = np.rot90(f)
+
+        cx += slice_x
+        if cx >= img_x:
+            cx = 0
+            cy += slice_y
+
+    if cond == 'Variance':
+        h = np.histogram(image, bins=1000)
+        thr = h[1][max(np.argwhere(h[0] > 400))]
+        vmax = thr[0]
+        title = cond + ' (threshold < ' + str(vmax) + ')'
+    else:
+        vmax = img3D.max()
+        title = cond
+
+    dpi = 300
+    margin = 0.05
+    figsize = (1 + margin) * img_y / dpi, (1 + margin) * img_x / dpi
+    fig = plt.figure(figsize=figsize, dpi=dpi)
+    extent = (0, img_x * 3, img_y * 3, 0)
+
+    plt.imshow(image, vmax=vmax, extent=extent, interpolation=None, cmap='gray')
+    plt.axis('off')
+    plt.title(title)
+
+    plt.savefig(pngfilename)
+    # plt.show()
 
 
 def printhelp():
@@ -492,7 +581,7 @@ def printhelp():
     USAGE
         without input parameter:
             python fmri_qc.py
-    
+
         with input parameter:
             python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
             python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>

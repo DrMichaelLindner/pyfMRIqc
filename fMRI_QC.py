@@ -270,7 +270,6 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     maskimage = nii2image(mask, 'Mask', pngfilename)
 
     # create mask image
-    #meanimage maskimage
     imageshape = np.array(meanimage).shape
     meanimagecol = np.zeros((imageshape[0], imageshape[1], 3))
     meanimagecol[:, :, 0] = meanimage
@@ -279,9 +278,21 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     meanimage2 = meanimage
     meanimage2[maskimage > 0] = 255
     meanimagecol[:, :, 2] = meanimage2
-    plt.imshow(meanimagecol / 255.0)
+    #plt.imshow(meanimagecol / 255.0)
     pngfilename = os.path.join(outputdirectory, prefix + 'Mask.png')
-    plt.savefig(pngfilename)
+    #plt.savefig(pngfilename)
+
+    sizes = np.shape(meanimagecol)
+    height = float(sizes[0])
+    width = float(sizes[1])
+    fig = plt.figure()
+    fig.set_size_inches(width / height, 1, forward=False)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
+    ax.imshow(meanimagecol / 255.0)
+    plt.savefig(pngfilename, dpi=height)
+
 
     # Apply mask
     s = np.asarray(np.asarray(np.array(data)).shape)
@@ -505,11 +516,11 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     htmlfilename = os.path.join(outputdirectory, prefix + "html_" + fname + ".html")
     html_output = open(htmlfilename, 'w')
     # add head to html file
-    html_output.write("<html><head><body style=""background-color:eee;""><title>fMRI_QC output</title></head>")
+    html_output.write("<html><head><body style=""background-color:#ddd;""><title>fMRI_QC output</title></head>")
 
     # add title to html file
-    html_output.write("<body> <h1> fMRI_QC output </h1> ")
-
+    html_output.write("<body> <h1 align="center"> fMRI_QC output </h1> ")
+    
     # add style for tables to html file
     style_text = """
         <style>
@@ -518,13 +529,14 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             border-collapse: collapse;
             width: 400;    
             background-color: #fff;
+            align="center"
         }
         th, td {
             padding: 15px;
             text-align: left;
         }
         table th {
-            background-color: #ddd;
+            background-color: #eee;
         }
         hr {
             display: block;
@@ -534,6 +546,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             solid #eee;
             margin: 1em 0;
             padding: 0; 
+        }
+        .center {
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+            width: 90%;
 }
         </style>
     """
@@ -600,16 +618,16 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # add QC plot
     html_output.write("<h2> Quality check plots </h2>")
-    html_output.write("""<img src ="fMRI_QC_plots_""" + fname + """.png" alt="fMRI_QC plots">""")
+    html_output.write("""<img src ="fMRI_QC_plots_""" + fname + """.png" alt="fMRI_QC plots" class="center">""")
 
     html_output.write("\n<hr>\n")  # horizontal line
 
     # Add mean data to html file
     html_output.write("<h2> Mean voxel signal </h2>")
-    html_output.write("""<img src="fMRI_QC_Mean.png" alt="Mean signal from functional image">""")
+    html_output.write("""<img src="fMRI_QC_Mean.png" alt="Mean signal from functional image" class="center">""")
     html_output.write("<h3> Mean voxel signal summary</h3>")
     mean_signal_table = """
-        <table>
+        <table style="width:50%">
             <tr>
                 <th>Mean Signal (unmasked)</th>
                 <td>""" + str(np.mean(data)) + """</td>
@@ -632,23 +650,23 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("\n<hr>\n")  # horizontal line
 
     html_output.write("<h2> Mask/Threshold </h2>")
-    html_output.write("""<img src="fMRI_QC_MASK.png" alt="mask image">""")
+    html_output.write("""<img src="fMRI_QC_MASK.png" alt="mask image" class="center">""")
 
     html_output.write("\n<hr>\n")  # horizontal line
 
     html_output.write("<h2> Voxel variance </h2>")
-    html_output.write("Voxel variance is thresholded at max " + str(varthresh) + "<br>")
+    html_output.write("Voxel variance is thresholded at max " + str(varthresh) + "<p></p>")
     head, vfilename = os.path.split(varfilename)
-    html_output.write("""<img src=""" + vfilename[:-4] + """_thr""" + str(varthresh) + vfilename[-4:] + """ alt="Signal variance from functional image">""")
+    html_output.write("""<img src=""" + vfilename[:-4] + """_thr""" + str(varthresh) + vfilename[-4:] + """ alt="Signal variance from functional image" class="center">""")
 
     html_output.write("\n<hr>\n")  # horizontal line
 
     # Add SNR data to html file
     html_output.write("<h2> Voxel signal to noise ratio </h2>")
-    html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image">""")
+    html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image" class="center">""")
     html_output.write("<h3> Voxel signal to noise ratio summary</h3>")
     SNR_table = """
-        <table>
+        <table style="width:50%">
             <tr>
                 <th>Mask Threshold Value</th>
                 <td>""" + str(maskthresh) + """</td>
@@ -718,18 +736,31 @@ def nii2image(img3D, cond, pngfilename):
         vmax = img3D.max()
         title = cond
 
-    dpi = 300
-    margin = 0.05
-    figsize = (1 + margin) * img_y / dpi, (1 + margin) * img_x / dpi
-    fig = plt.figure(figsize=figsize, dpi=dpi)
-    extent = (0, img_x * 3, img_y * 3, 0)
+    sizes = np.shape(image)
+    height = float(sizes[0])
+    width = float(sizes[1])
 
-    plt.imshow(image, vmax=vmax, extent=extent, interpolation=None, cmap='gray')
-    plt.axis('off')
-    plt.title(title)
+    fig = plt.figure()
+    fig.set_size_inches(width / height, 1, forward=False)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.set_axis_off()
+    fig.add_axes(ax)
 
+    #dpi = 300
+    #margin = 0.05
+    #figsize = (1 + margin) * img_y / dpi, (1 + margin) * img_x / dpi
+    #fig = plt.figure(figsize=figsize, dpi=dpi)
+    #extent = (0, img_x * 3, img_y * 3, 0)
+
+    #plt.imshow(image, vmax=vmax, extent=extent, interpolation=None, cmap='gray')
+    #plt.axis('off')
+    #plt.title(title)
+    ax.imshow(image, vmax=vmax, cmap='gray')
     if cond is not 'Mask':
-        plt.savefig(pngfilename)
+        #plt.savefig(pngfilename)
+        plt.savefig(pngfilename, dpi=height)
+        plt.close()
+
     # plt.show()
 
     if cond == 'Variance':

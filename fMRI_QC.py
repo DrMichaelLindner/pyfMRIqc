@@ -489,101 +489,178 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     print("Create html file")
     htmlfilename = os.path.join(outputdirectory, prefix + "html_" + fname + ".html")
     html_output = open(htmlfilename, 'w')
-    html_output.write("<html><head><title></title></head>")
-    html_output.write("<body> <p> fMRI_QC output <p> <p> fMRI_QC Input parameters: <br/> File Name: " + fname + "<br/> Motion File: " + str(motionfile) + "<br/> Threshold Value: "+ str(maskthresh) + "<br/> NIFTI mask: " + str(maskniifile) + "<br/> SNR threshold: " + str(snrvoxelpercentage) + "<p>")
+    # add head to html file
+    html_output.write("<html><head><body style=""background-color:eee;""><title>fMRI_QC output</title></head>")
 
-    # Add scan parameters and user input to html file
-    acquisition_table = """
-<style>
-table, th, td {
-  border: 1px solid black;
-  border-collapse: collapse;
-}
-th, td {
-  padding: 5px;
-}
-</style>
-    <table style="width:100%">
-        <tr>
-            <th>Slice Dimensions</th>
-            <th>Number of Slices</th>
-            <th>Number of Volumes</th>
-            <th>Voxel Size</th>
-            <th>Total Number of Voxels</th>
-        </tr>
-        <tr>
-            <td>""" + str(header['dim'][1]) + "x" + str(header['dim'][2]) + """</td>
-            <td>""" + str(header['dim'][3]) + """</td>
-            <<td>""" + str(data.shape[3]) + """</td>
-            <td>""" + str(header['pixdim'][1]) + "x" + str(header['pixdim'][2]) + "x" + str(header['pixdim'][3]) + """</td>
-            <td>""" + str(data.shape[0] * data.shape[1] * data.shape[2]) + """</td>
-        </tr>
-    </table>"""
-    html_output.write("<p> Functional image parameters: <br/>" + acquisition_table + "<p>")
+    # add title to html file
+    html_output.write("<body> <h1> fMRI_QC output </h1> ")
 
-    # Add mean mask data to html file
-    html_output.write("""<p> Mean voxel signal <br/> <img src="fMRI_QC_Mean.png" alt="Mean signal from functional image"> <p>""")
-    mean_signal_table = """
-    <style>
-    table, th, td {
-      border: 1px solid black;
-      border-collapse: collapse;
-    }
-    th, td {
-      padding: 5px;
-    }
-    </style>
-        <table style="width:100%">
+    # add style for tables to html file
+    style_text = """
+        <style>
+        table, th, td {
+            border: 1px solid black;
+            border-collapse: collapse;
+            width: 400;    
+            background-color: #fff;
+        }
+        th, td {
+            padding: 15px;
+            text-align: left;
+        }
+        table th {
+            background-color: #ddd;
+        }
+        hr {
+            display: block;
+            height: 1px;
+            border: 20;
+            border-top: 1px 
+            solid #eee;
+            margin: 1em 0;
+            padding: 0; 
+}
+        </style>
+    """
+    html_output.write(style_text)
+
+    # add parameter table to html file
+    html_output.write("<h2> fMRI_QC Input parameters </h2>")
+    parameter_table = """
+        <table>
             <tr>
-                <th>Mean Signal (unmasked)</th>
-                <th>Mean Signal SD (unmasked)</th>
-                <th>Mean Signal (masked)</th>
-                <th>Mean Signal SD (masked)</th>
+                <th>Functional file</th>
+                <td>""" + fname + """</td>
             </tr>
             <tr>
+                <th>Motion file</th>
+                <td>""" + str(motionfile) + """</td>
+            </tr>
+            <tr>
+                <th>Threshold value</th>
+                <td>""" + str(maskthresh) + """</td>
+            </tr>
+            <tr>
+                <th>Mask file</th>
+                <td>""" + str(maskniifile) + """</td>
+            </tr>
+            <tr>
+                <th>SNR threshold</th>
+                <td>""" + str(snrvoxelpercentage) + """</td>
+            </tr>
+        </table>"""
+    html_output.write(parameter_table)
+
+    html_output.write("\n<hr>\n") # horizontal line
+
+    # Add scan parameters and user input to html file
+    html_output.write("<h2> Functional image parameters </h2>")
+    acquisition_table = """
+        <table>
+            <tr>
+                <th>Slice Dimensions</th>
+                <td>""" + str(header['dim'][1]) + "x" + str(header['dim'][2]) + """</td>
+            </tr>
+            <tr>
+                <th>Number of Slices</th>
+                <td>""" + str(header['dim'][3]) + """</td>
+            </tr>
+            <tr>
+                <th>Number of Volumes</th>
+                <td>""" + str(data.shape[3]) + """</td>
+            </tr>
+            <tr>
+                <th>Voxel Size</th>
+                <td>""" + str(header['pixdim'][1]) + "x" + str(header['pixdim'][2]) + "x" + str(header['pixdim'][3]) + """</td>
+            </tr>
+            <tr>
+                <th>Total Number of Voxels</th>
+                <td>""" + str(data.shape[0] * data.shape[1] * data.shape[2]) + """</td>
+            </tr>
+        
+        </table>"""
+    html_output.write(acquisition_table)
+
+    html_output.write("\n<hr>\n")  # horizontal line
+
+    # add QC plot
+    html_output.write("<h2> Quality check plots </h2>")
+    html_output.write("""<img src ="fMRI_QC_plots_""" + fname + """.png" alt="fMRI_QC plots">""")
+
+    html_output.write("\n<hr>\n")  # horizontal line
+
+    # Add mean data to html file
+    html_output.write("<h2> Mean voxel signal </h2>")
+    html_output.write("""<img src="fMRI_QC_Mean.png" alt="Mean signal from functional image">""")
+    html_output.write("<h3> Mean voxel signal summary</h3>")
+    mean_signal_table = """
+        <table>
+            <tr>
+                <th>Mean Signal (unmasked)</th>
                 <td>""" + str(np.mean(data)) + """</td>
+            </tr>
+            <tr>
+                <th>Mean Signal SD (unmasked)</th>
                 <td>""" + str(np.std(data)) + """</td>
-                <<td>""" + str(np.mean(data[mask == 1])) + """</td>
+            </tr>
+            <tr>
+                <th>Mean Signal (masked)</th>
+                <td>""" + str(np.mean(data[mask == 1])) + """</td>
+            </tr>
+            <tr>
+                <th>Mean Signal SD (masked)</th>
                 <td>""" + str(np.std(data[mask == 1])) + """</td>
             </tr>
         </table>"""
     html_output.write(mean_signal_table)
 
+    html_output.write("\n<hr>\n")  # horizontal line
+
+    html_output.write("<h2> Voxel variance </h2>")
+    html_output.write("""<img src="fMRI_QC_Variance.png" alt="Signal variance from functional image">""")
+
+    html_output.write("\n<hr>\n")  # horizontal line
+
     # Add SNR data to html file
-    html_output.write("""<p> Voxel signal to noise ratio <br/> <img src="fMRI_QC_SNR.png" alt="SNR from functional image"> <p>""")
+    html_output.write("<h2> Voxel signal to noise ratio </h2>")
+    html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image">""")
+    html_output.write("<h2> Voxel signal to noise ratio summary</h2>")
     SNR_table = """
-        <style>
-        table, th, td {
-          border: 1px solid black;
-          border-collapse: collapse;
-        }
-        th, td {
-          padding: 5px;
-        }
-        </style>
-            <table style="width:100%">
-                <tr>
-                    <th>Mask Threshold Value</th>
-                    <th>Number of Masked Voxels</th>
-                    <th>SNR Threshold</th>
-                    <th>Number of Voxels with SNR Below Threshold</th>
-                    <th>Mean Voxel SNR</th>
-                    <th>Voxel SNR SD</th>
-                    <th>Voxel SNR Range</th>
-                </tr>
-                <tr>
-                    <td>""" + str(maskthresh) + """</td>
-                    <td>""" + str(np.sum(mask)) + """</td>
-                    <<td>""" + str(snrvoxelpercentage) + """</td>
-                    <td>""" + str(snrvoxelnr) + """</td>
-                    <td>""" + str(snrvoxelmean) + """</td>
-                    <<td>""" + str(snrvoxelstd) + """</td>
-                    <td>""" + str(snrvoxelmin) + " - " + str(snrvoxelmax) + """</td>
-                </tr>
-            </table>"""
+        <table>
+            <tr>
+                <th>Mask Threshold Value</th>
+                <td>""" + str(maskthresh) + """</td>
+            </tr>
+            <tr>
+                <th>Number of Masked Voxels</th>
+                <td>""" + str(np.sum(mask)) + """</td>
+            </tr>
+            <tr>
+                <th>SNR Threshold</th>
+                <td>""" + str(snrvoxelpercentage) + """</td>
+            </tr>
+            <tr>
+                <th>Number of Voxels with SNR Below Threshold</th>
+                <td>""" + str(snrvoxelnr) + """</td>
+            </tr>
+            <tr>
+                <th>Mean Voxel SNR</th>
+                <td>""" + str(snrvoxelmean) + """</td>
+            </tr>
+            <tr>
+                <th>Voxel SNR SD</th>
+                <<td>""" + str(snrvoxelstd) + """</td>
+            </tr>
+            <tr>
+                <th>Voxel SNR Range</th>
+                <td>""" + str(snrvoxelmin) + " - " + str(snrvoxelmax) + """</td>
+            </tr>
+        </table>"""
     html_output.write(SNR_table)
-    html_output.write("""<p> Voxel signal variance <br/> <img src="fMRI_QC_Variance.png" alt="Signal variance from functional image"> <p>""")
-    html_output.write("""<p> Plots: <br/> <img src ="fMRI_QC_plots_""" + fname + """.png" alt="fMRI_QC plots"> <p>""" )
+
+
+
+    # close html files
     html_output.write("</body></html>")
     html_output.close()
 

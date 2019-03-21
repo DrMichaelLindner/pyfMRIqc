@@ -217,7 +217,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     nib.save(new_img, newfilename)
     # create png
     pngfilename = os.path.join(outputdirectory, prefix + 'Mean.png')
-    nii2image(meandata, 'Mean', pngfilename)
+    meanimage = nii2image(meandata, 'Mean', pngfilename)
 
     # Create SNR mask
     meandata4snr = np.mean(data, axis=3)
@@ -267,6 +267,21 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     new_img = nib.Nifti1Image(mask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "MASK_" + fname + fext)
     nib.save(new_img, newfilename)
+    maskimage = nii2image(mask, 'Mask', pngfilename)
+
+    # create mask image
+    #meanimage maskimage
+    imageshape = np.array(meanimage).shape
+    meanimagecol = np.zeros((imageshape[0], imageshape[1], 3))
+    meanimagecol[:, :, 0] = meanimage
+    meanimagecol[:, :, 1] = meanimage
+
+    meanimage2 = meanimage
+    meanimage2[maskimage > 0] = 255
+    meanimagecol[:, :, 2] = meanimage2
+    plt.imshow(meanimagecol / 255.0)
+    pngfilename = os.path.join(outputdirectory, prefix + 'Mask.png')
+    plt.savefig(pngfilename)
 
     # Apply mask
     s = np.asarray(np.asarray(np.array(data)).shape)
@@ -385,8 +400,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     vardata = np.var(data, axis=3)
     # create png
     vardata = vardata.astype(np.int32)
-    pngfilename = os.path.join(outputdirectory, prefix + 'Variance.png')
-    nii2image(vardata, 'Variance', pngfilename)
+    varfilename = os.path.join(outputdirectory, prefix + 'Variance.png')
+    varthresh = nii2image(vardata, 'Variance', varfilename)
     header2 = header
     header2['glmin'] = np.nanmin(vardata)
     header2['glmax'] = np.nanmax(vardata)
@@ -616,15 +631,22 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     html_output.write("\n<hr>\n")  # horizontal line
 
+    html_output.write("<h2> Mask/Threshold </h2>")
+    html_output.write("""<img src="fMRI_QC_MASK.png" alt="mask image">""")
+
+    html_output.write("\n<hr>\n")  # horizontal line
+
     html_output.write("<h2> Voxel variance </h2>")
-    html_output.write("""<img src="fMRI_QC_Variance.png" alt="Signal variance from functional image">""")
+    html_output.write("Voxel variance is thresholded at max " + str(varthresh) + "<br>")
+    head, vfilename = os.path.split(varfilename)
+    html_output.write("""<img src=""" + vfilename[:-4] + """_thr""" + str(varthresh) + vfilename[-4:] + """ alt="Signal variance from functional image">""")
 
     html_output.write("\n<hr>\n")  # horizontal line
 
     # Add SNR data to html file
     html_output.write("<h2> Voxel signal to noise ratio </h2>")
     html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image">""")
-    html_output.write("<h2> Voxel signal to noise ratio summary</h2>")
+    html_output.write("<h3> Voxel signal to noise ratio summary</h3>")
     SNR_table = """
         <table>
             <tr>
@@ -649,7 +671,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             </tr>
             <tr>
                 <th>Voxel SNR SD</th>
-                <<td>""" + str(snrvoxelstd) + """</td>
+                <td>""" + str(snrvoxelstd) + """</td>
             </tr>
             <tr>
                 <th>Voxel SNR Range</th>
@@ -657,8 +679,6 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             </tr>
         </table>"""
     html_output.write(SNR_table)
-
-
 
     # close html files
     html_output.write("</body></html>")
@@ -693,6 +713,7 @@ def nii2image(img3D, cond, pngfilename):
         thr = h[1][max(np.argwhere(h[0] > 400))]
         vmax = thr[0]
         title = cond + ' (threshold < ' + str(vmax) + ')'
+        pngfilename = pngfilename[:-4] + "_thr" + str(vmax) + pngfilename[-4:]
     else:
         vmax = img3D.max()
         title = cond
@@ -707,8 +728,14 @@ def nii2image(img3D, cond, pngfilename):
     plt.axis('off')
     plt.title(title)
 
-    plt.savefig(pngfilename)
+    if cond is not 'Mask':
+        plt.savefig(pngfilename)
     # plt.show()
+
+    if cond == 'Variance':
+        return (vmax)
+    else:
+        return (image)
 
 
 def printhelp():

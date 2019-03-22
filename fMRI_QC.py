@@ -519,7 +519,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("<html><head><body style=""background-color:#ddd;""><title>fMRI_QC output</title></head>")
 
     # add title to html file
-    html_output.write("<body> <h1 align="center"> fMRI_QC output </h1> ")
+    html_output.write("""<body> <h1 align="center"> fMRI_QC output </h1> """)
     
     # add style for tables to html file
     style_text = """

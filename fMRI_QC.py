@@ -66,6 +66,7 @@ import getopt
 import nibabel as nib
 import numpy as np
 import matplotlib
+import copy
 
 matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
@@ -155,7 +156,7 @@ def main():
         snrvoxelpercentage = easygui.enterbox(title='Percentage of low value voxels for SNR calculation',
                                               msg='Specify as percentage of low value voxels for SNR calculation. (e.g. 25% = 25 not 0.25)',
                                               default='5')
-        snrvoxelpercentage.replace('%', '')
+        snrvoxelpercentage = snrvoxelpercentage.replace('%', '')
         snrvoxelpercentage = int(snrvoxelpercentage)
         if snrvoxelpercentage is None:
             snrvoxelpercentage = 5
@@ -208,7 +209,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Create mean data and nifti image
     print("Create and save MEAN")
     meandata = np.mean(data, axis=3)
-    meandata = meandata.astype(np.int16)
+    #meandata = meandata.astype(np.int16)
     header2 = header
     header2['glmin'] = np.min(meandata)
     header2['glmax'] = np.max(meandata)
@@ -228,7 +229,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     snrvoxelstd = np.std(vec[0][0:int(nrvoxel * snrvoxelpercentage / 100)])
     snrvoxelmin = vec[0][0]
     snrvoxelmax = vec[0][int(nrvoxel * snrvoxelpercentage / 100)]
-    snrvoxelnr = np.max(vec[0])
+    snrvoxelnr = int(nrvoxel * snrvoxelpercentage / 100)
     snrmask = np.where((meandata4snr < vec[0][int(nrvoxel * snrvoxelpercentage / 100)]) & (meandata4snr > 0), 1, 0)
     # Mean noise for SNR
     meannoise = np.mean(meandata4snr[snrmask == 1])
@@ -267,20 +268,29 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     new_img = nib.Nifti1Image(mask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "MASK_" + fname + fext)
     nib.save(new_img, newfilename)
+    pngfilename = os.path.join(outputdirectory, prefix + 'Mask.png')
     maskimage = nii2image(mask, 'Mask', pngfilename)
 
     # create mask image
     imageshape = np.array(meanimage).shape
     meanimagecol = np.zeros((imageshape[0], imageshape[1], 3))
-    meanimagecol[:, :, 0] = meanimage
-    meanimagecol[:, :, 1] = meanimage
 
-    meanimage2 = meanimage
+    meanimagecol[:, :, 0] = meanimage
+
+    # add SNR mask in green
+    pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
+    snrimage = nii2image(snrmask, 'SNR', pngfilename)
+    meanimage0 = copy.deepcopy(meanimage)
+    meanimage0[snrimage > 0] = 255
+    meanimagecol[:, :, 1] = meanimage0
+
+    # add mask in blue
+    meanimage2 = copy.deepcopy(meanimage)
     meanimage2[maskimage > 0] = 255
     meanimagecol[:, :, 2] = meanimage2
-    #plt.imshow(meanimagecol / 255.0)
+    # plt.imshow(meanimagecol / 255.0)
     pngfilename = os.path.join(outputdirectory, prefix + 'Mask.png')
-    #plt.savefig(pngfilename)
+    # plt.savefig(pngfilename)
 
     sizes = np.shape(meanimagecol)
     height = float(sizes[0])
@@ -319,10 +329,11 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     text_file.write("  SNR nr of lowest voxel: " + str(snrvoxelnr) + "\n")
     text_file.write("  SNR voxel MEAN: " + str(snrvoxelmean) + "\n")
     text_file.write("  SNR voxel STD: " + str(snrvoxelstd) + "\n")
-    text_file.write("  SNR voxel value range: " + str(snrvoxelmin) + " - " + str(snrvoxelmin) + "\n")
+    text_file.write("  SNR voxel value range: " + str(snrvoxelmin) + " - " + str(snrvoxelmax) + "\n")
 
     if maskniifile is not None:
         text_file.write("Mask file: " + maskniifile + "\n")
+
     text_file.write("\n------------------------------------ \n\n")
     text_file.write("QC OVERVIEW: \n\n")
     text_file.write("Mean: " + str(np.mean(data)) + "\n")
@@ -371,8 +382,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # calculate SNR
     snrdata = np.divide(meandata, meannoise)
     # create png
-    pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
-    nii2image(snrdata, 'SNR', pngfilename)
+    #pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
+    #snrimage = nii2image(snrdata, 'SNR', pngfilename)
     # mean SNR over slice
     snrvec = np.zeros((snrdata.shape[2], 1))
     for ii in range(snrdata.shape[2]):
@@ -519,8 +530,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("<html><head><body style=""background-color:#ddd;""><title>fMRI_QC output</title></head>")
 
     # add title to html file
-    html_output.write("<body> <h1 align="center"> fMRI_QC output </h1> ")
-    
+    html_output.write("<body> <h1> fMRI_QC output </h1> ")
+
     # add style for tables to html file
     style_text = """
         <style>
@@ -543,7 +554,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             height: 1px;
             border: 20;
             border-top: 1px 
-            solid #eee;
+            solid #333;
             margin: 1em 0;
             padding: 0; 
         }
@@ -623,9 +634,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("\n<hr>\n")  # horizontal line
 
     # Add mean data to html file
-    html_output.write("<h2> Mean voxel signal </h2>")
+    html_output.write("<h2> Mean voxel intensity </h2>")
     html_output.write("""<img src="fMRI_QC_Mean.png" alt="Mean signal from functional image" class="center">""")
-    html_output.write("<h3> Mean voxel signal summary</h3>")
+    html_output.write("<h3> Mean voxel intensity summary</h3>")
     mean_signal_table = """
         <table style="width:50%">
             <tr>
@@ -649,24 +660,55 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     html_output.write("\n<hr>\n")  # horizontal line
 
-    html_output.write("<h2> Mask/Threshold </h2>")
+    # Add Mask to html file
+    html_output.write("<h2> Masks </h2>")
+    html_output.write(
+        "<p>Voxels in cluded inthe masks are shown in blue, voxels used for SNR calcualtion are shown in green:</p>")
     html_output.write("""<img src="fMRI_QC_MASK.png" alt="mask image" class="center">""")
+    html_output.write("<p></p>")
+
+    MEAN_table = """
+        <table style="width:50%">
+            <tr>
+                <th>Total Number of Voxels</th>
+                <td>""" + str(np.sum(mask)) + """</td>
+            </tr>
+            <tr>
+                <th>Mask Threshold Value</th>
+                <td>""" + str(maskthresh) + """</td>
+            </tr>
+            <tr>
+                <th>Number of Masked Voxels</th>
+                <td>""" + str(np.sum(mask)) + """</td>
+            </tr>
+        </table>"""
+    html_output.write(MEAN_table)
+
 
     html_output.write("\n<hr>\n")  # horizontal line
 
     html_output.write("<h2> Voxel variance </h2>")
-    html_output.write("Voxel variance is thresholded at max " + str(varthresh) + "<p></p>")
+    html_output.write("Voxel variance is thresholded at max " + str(varthresh) + ":<p></p>")
     head, vfilename = os.path.split(varfilename)
-    html_output.write("""<img src=""" + vfilename[:-4] + """_thr""" + str(varthresh) + vfilename[-4:] + """ alt="Signal variance from functional image" class="center">""")
+    html_output.write("""<img src=""" + vfilename[:-4] + """_thr""" + str(varthresh) + vfilename[-4:] +
+                      """ alt="Signal variance from functional image" class="center">""")
 
     html_output.write("\n<hr>\n")  # horizontal line
 
     # Add SNR data to html file
-    html_output.write("<h2> Voxel signal to noise ratio </h2>")
-    html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image" class="center">""")
-    html_output.write("<h3> Voxel signal to noise ratio summary</h3>")
+    html_output.write("<h2> Signal to noise ratio </h2>")
+    # html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image" class="center">""")
+    # html_output.write("<h3> Voxel signal to noise ratio summary</h3>")
+    allsclicesnrtext = ""
+    for ii in range(len(snrvec)):
+        s = str(snrvec[ii])
+        s = s.replace('[', '')
+        s = s.replace(']', '')
+        s = s.replace(' ', '')
+        allsclicesnrtext += s + "\n"
+
     SNR_table = """
-        <table style="width:50%">
+        <table style="width:70%">
             <tr>
                 <th>Mask Threshold Value</th>
                 <td>""" + str(maskthresh) + """</td>
@@ -680,23 +722,43 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <td>""" + str(snrvoxelpercentage) + """</td>
             </tr>
             <tr>
-                <th>Number of Voxels with SNR Below Threshold</th>
+                <th>Number of voxels below threshold for SNR</th>
                 <td>""" + str(snrvoxelnr) + """</td>
             </tr>
             <tr>
-                <th>Mean Voxel SNR</th>
+                <th>Mean values of voxel for SNR</th>
                 <td>""" + str(snrvoxelmean) + """</td>
             </tr>
             <tr>
-                <th>Voxel SNR SD</th>
+                <th>STD of voxel for SNR</th>
                 <td>""" + str(snrvoxelstd) + """</td>
             </tr>
             <tr>
-                <th>Voxel SNR Range</th>
+                <th>Value range of voxel for SNR</th>
                 <td>""" + str(snrvoxelmin) + " - " + str(snrvoxelmax) + """</td>
+            </tr>
+            <tr>
+                <th>Mean voxel SNR</th>
+                <td>""" + str(np.nanmean(snrvec)) + """</td>
+            </tr>
+            <tr>
+                <th>Min Slice SNR</th>
+                <td>""" + str(np.nanmin(snrvec)) + """</td>
+            </tr>
+            <tr>
+                <th>Min Slice SNR</th>
+                <td>""" + str(np.nanmax(snrvec)) + """</td>
+            </tr>
+            <tr>
+                <th>ALL Slice SNR</th>
+                <td>""" + str(allsclicesnrtext) + """</td>
             </tr>
         </table>"""
     html_output.write(SNR_table)
+
+
+
+
 
     # close html files
     html_output.write("</body></html>")
@@ -756,8 +818,7 @@ def nii2image(img3D, cond, pngfilename):
     #plt.axis('off')
     #plt.title(title)
     ax.imshow(image, vmax=vmax, cmap='gray')
-    if cond is not 'Mask':
-        #plt.savefig(pngfilename)
+    if cond is not 'Mask' and cond is not 'SNR':
         plt.savefig(pngfilename, dpi=height)
         plt.close()
 

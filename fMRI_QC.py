@@ -500,7 +500,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         # add line to plot
         plt.plot(stats.zscore(rmsum), label='sum of relative movements')
 
-    plt.legend(loc='upper right')  # , shadow=True, fontsize='x-large')
+    plt.legend(loc='lower right')  # , shadow=True, fontsize='x-large')
 
     # plot 4
     d4a = np.max(d2, axis=1)
@@ -671,7 +671,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         <table style="width:50%">
             <tr>
                 <th>Total Number of Voxels</th>
-                <td>""" + str(np.sum(mask)) + """</td>
+                <td>""" + str(data.shape[0] * data.shape[1] * data.shape[2])) + """</td>
             </tr>
             <tr>
                 <th>Mask Threshold Value</th>
@@ -756,9 +756,44 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         </table>"""
     html_output.write(SNR_table)
 
+    if motionfile is not None:
+        html_output.write("\n<hr>\n")  # horizontal line
 
+        # Add SNR data to html file
+        html_output.write("<h2> Motion parameter summary </h2>")
 
-
+        motion_table = """
+                <table style="width:70%">
+                    <tr>
+                        <th>Mean absolute Movement</th>
+                        <td>""" + str(np.mean(rm)) + """</td>
+                    </tr>
+                    <tr>
+                        <th>Max absolute Movement</th>
+                        <td>""" + str(np.max(rm)) + """</td>
+                    </tr>
+                    <tr>
+                        <th>Mean relative Movement</th>
+                        <td>""" + str(np.mean(relrm)) + """</td>
+                    </tr>
+                    <tr>
+                        <th>Max relative Movement</th>
+                        <td>""" + str(np.max(relrm)) + """</td>
+                    </tr>
+                    <tr>
+                        <th>Relative movements (>0.1mm)</th>
+                        <td>""" + str(len(nrrm01))  + """</td>
+                    </tr>
+                    <tr>
+                        <th><font color=#ffa500>Relative movements (>0.5mm)</font></th>
+                        <td><font color=#ffa500>""" + str(len(nrrm05)) + """</font></td>
+                    </tr>
+                    <tr>
+                        <th><font color="red">Relative movements (>voxelsize)</font></th>
+                        <td><font color="red">""" + str(len(nrrmv))  + """</font></td>
+                    </tr>
+                </table>"""
+        html_output.write(motion_table)
 
     # close html files
     html_output.write("</body></html>")

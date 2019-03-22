@@ -53,9 +53,9 @@ by the Free Software Foundation;
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY.
 
-AUTHOR
-Michael Lindner
-University of Reading, 2018
+AUTHORS
+Michael Lindner and Brendan Williams
+University of Reading, 2019
 School of Psychology and Clinical Language Sciences
 Center for Integrative Neuroscience and Neurodynamics
 """
@@ -67,6 +67,7 @@ import nibabel as nib
 import numpy as np
 import matplotlib
 import copy
+from datetime import datetime
 
 matplotlib.use("TkAgg")
 from matplotlib import pyplot as plt
@@ -76,6 +77,7 @@ import easygui
 
 # from tkinter import messagebox, filedialog, Tk, Text, Button, mainloop
 
+vers = 1.1
 
 def main():
     # check input options
@@ -527,10 +529,11 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     htmlfilename = os.path.join(outputdirectory, prefix + "html_" + fname + ".html")
     html_output = open(htmlfilename, 'w')
     # add head to html file
-    html_output.write("<html><head><body style=""background-color:#ddd;""><title>fMRI_QC output</title></head>")
-
+    html_output.write("<html><head><body style=""background-color:#d2e3f4;""><title>fMRI_QC output</title>")
+    bootstraplines = """<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
+            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">"""
+    html_output.write(bootstraplines)
     # add title to html file
-    html_output.write("<body> <h1> fMRI_QC output </h1> ")
 
     # add style for tables to html file
     style_text = """
@@ -563,13 +566,38 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             margin-left: auto;
             margin-right: auto;
             width: 90%;
-}
+        }
+        h1 { padding-top: 45px; }
+        h2 { padding-top: 20px; }
+        h3 { padding-top: 25px; }
         </style>
+        </head>
+        <body>
     """
     html_output.write(style_text)
 
+    navbar = """
+            <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
+            <a class="navbar-brand" href="#">fMRI_QC</a>
+            <div class="collapse navbar-collapse">
+                <ul class="navbar-nav">
+                <li class="nav-item"><a class="nav-link" href="#Input parameter">Input parameter</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Scan parameter">Scan parameter</a></li>
+                <li class="nav-item"><a class="nav-link" href="#QC plots">QC plots</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Mean">Mean</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Masks">Masks</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Variance">Variance</a></li>
+                <li class="nav-item"><a class="nav-link" href="#SNR">SNR</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Motion">Motion</a></li>
+                <li class="nav-item"><a class="nav-link" href="#Motion">About</a></li>
+                </ul>
+            </div>
+            </nav>"""
+    html_output.write(navbar)
+
+
     # add parameter table to html file
-    html_output.write("<h2> fMRI_QC Input parameters </h2>")
+    html_output.write("""<div id="Input parameter"> <h1>Input parameter</h1>""")
     parameter_table = """
         <table>
             <tr>
@@ -595,10 +623,10 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         </table>"""
     html_output.write(parameter_table)
 
-    html_output.write("\n<hr>\n") # horizontal line
+    html_output.write("</div><br><hr><br>") # horizontal line
 
     # Add scan parameters and user input to html file
-    html_output.write("<h2> Functional image parameters </h2>")
+    html_output.write("""<div id="Scan parameter"> <h1>Scan parameter</h1>""")
     acquisition_table = """
         <table>
             <tr>
@@ -625,18 +653,18 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         </table>"""
     html_output.write(acquisition_table)
 
-    html_output.write("\n<hr>\n")  # horizontal line
+    html_output.write("</div><br><hr><br>")  # horizontal line
 
     # add QC plot
-    html_output.write("<h2> Quality check plots </h2>")
+    html_output.write("""<div id="QC plots"> <h1>QC plots</h1>""")
     html_output.write("""<img src ="fMRI_QC_plots_""" + fname + """.png" alt="fMRI_QC plots" class="center">""")
 
     html_output.write("\n<hr>\n")  # horizontal line
 
     # Add mean data to html file
-    html_output.write("<h2> Mean voxel intensity </h2>")
+    html_output.write("""<div id="Mean"> <h1>Mean voxel intensity</h1>""")
     html_output.write("""<img src="fMRI_QC_Mean.png" alt="Mean signal from functional image" class="center">""")
-    html_output.write("<h3> Mean voxel intensity summary</h3>")
+    html_output.write("<h2> Mean voxel intensity summary</h2>")
     mean_signal_table = """
         <table style="width:50%">
             <tr>
@@ -658,20 +686,20 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         </table>"""
     html_output.write(mean_signal_table)
 
-    html_output.write("\n<hr>\n")  # horizontal line
+    html_output.write("</div><br><hr><br>")  # horizontal line
 
     # Add Mask to html file
-    html_output.write("<h2> Masks </h2>")
+    html_output.write("<div id=\"Masks\"> <h1 class=\"sub-report-title\">Masks</h1>")
     html_output.write(
-        "<p>Voxels in cluded inthe masks are shown in blue, voxels used for SNR calcualtion are shown in green:</p>")
+        "<p>Voxels included in the masks are highlighted in blue, voxels used for SNR calcualtion are highlighted in green:</p>")
     html_output.write("""<img src="fMRI_QC_MASK.png" alt="mask image" class="center">""")
     html_output.write("<p></p>")
-
+    html_output.write("<h2> Mask summary</h2>")
     MEAN_table = """
         <table style="width:50%">
             <tr>
                 <th>Total Number of Voxels</th>
-                <td>""" + str(data.shape[0] * data.shape[1] * data.shape[2])) + """</td>
+                <td>""" + str(nrvoxel) + """</td>
             </tr>
             <tr>
                 <th>Mask Threshold Value</th>
@@ -684,19 +712,18 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         </table>"""
     html_output.write(MEAN_table)
 
+    html_output.write("</div><br><hr><br>")  # horizontal line
 
-    html_output.write("\n<hr>\n")  # horizontal line
-
-    html_output.write("<h2> Voxel variance </h2>")
+    html_output.write("""<div id="Variance"> <h1>Variance of voxel intensity</h1>""")
     html_output.write("Voxel variance is thresholded at max " + str(varthresh) + ":<p></p>")
     head, vfilename = os.path.split(varfilename)
     html_output.write("""<img src=""" + vfilename[:-4] + """_thr""" + str(varthresh) + vfilename[-4:] +
                       """ alt="Signal variance from functional image" class="center">""")
 
-    html_output.write("\n<hr>\n")  # horizontal line
+    html_output.write("</div><br><hr><br>")  # horizontal line
 
     # Add SNR data to html file
-    html_output.write("<h2> Signal to noise ratio </h2>")
+    html_output.write("""<div id="SNR"> <h1>Signal to noise ratio (SNR)</h1>""")
     # html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image" class="center">""")
     # html_output.write("<h3> Voxel signal to noise ratio summary</h3>")
     allsclicesnrtext = ""
@@ -737,7 +764,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <th>Value range of voxel for SNR</th>
                 <td>""" + str(snrvoxelmin) + " - " + str(snrvoxelmax) + """</td>
             </tr>
-            <tr>
+                <tr>
                 <th>Mean voxel SNR</th>
                 <td>""" + str(np.nanmean(snrvec)) + """</td>
             </tr>
@@ -756,12 +783,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         </table>"""
     html_output.write(SNR_table)
 
+    html_output.write("</div><br><hr><br>")  # horizontal line
+
+    # Add motion parameter to html file
+    html_output.write("""<div id="Motion"> <h1>Motion parameter summary</h1>""")
+
     if motionfile is not None:
-        html_output.write("\n<hr>\n")  # horizontal line
-
-        # Add SNR data to html file
-        html_output.write("<h2> Motion parameter summary </h2>")
-
         motion_table = """
                 <table style="width:70%">
                     <tr>
@@ -793,7 +820,36 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                         <td><font color="red">""" + str(len(nrrmv))  + """</font></td>
                     </tr>
                 </table>"""
-        html_output.write(motion_table)
+    else:
+        motion_table = """<p>No motion parameter file was provided as input.</p>"""
+
+    html_output.write(motion_table)
+
+    html_output.write("</div><br><hr><br>")  # horizontal line
+
+    # get time string
+    t = datetime.now()
+    strg = t.strftime('%Y/%m/%d %H:%M:%S')
+
+    html_output.write("""<div id="About"> <h1>About</h1>""")
+    about_text="""
+    <br>
+    <ul>
+		<li>Date of quality check: """ + str(strg) + """</li>
+		<li>fMRI_QC version: """ + str(vers) + """</li>
+		<li>fMRI_QC code: <a href="https://github.com/DrMichaelLindner/fMRI_QC">https://github.com/DrMichaelLindner/fMRI_QC</a></li>
+	</ul>
+	<br>
+    <p><font size="4"><b>Thank you for using fMRI_QC.py!</b></font></p>
+	<p><b>AUTHORS:</b><br>
+        Michael Lindner and Brendan Williams<br>
+        University of Reading, 2019<br>
+        School of Psychology and Clinical Language Sciences<br>
+        Center for Integrative Neuroscience and Neurodynamics
+        </p>
+    """
+    html_output.write(about_text)
+    html_output.write("</div><br><hr><br>")  # horizontal line
 
     # close html files
     html_output.write("</body></html>")
@@ -802,7 +858,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     print("DONE!")
 
     print("\nThank you for using this tool!")
-    print("    Michael Lindner")
+    print("Michael Lindner and Brendan Williams")
 
 
 def nii2image(img3D, cond, pngfilename):

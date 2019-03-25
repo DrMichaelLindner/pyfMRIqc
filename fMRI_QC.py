@@ -135,7 +135,7 @@ def main():
         # input dialogs if no files are give as input parameter
         # functional file
         if niifile == '':
-            niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
+            niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii*")
 
         # motion file
         if motionfile == '':
@@ -205,11 +205,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     affine = nii.affine
     voxelsize = header['pixdim'][1]
     nrvoxel = shape[0] * shape[1] * shape[2]
+    nrvolumes = np.array(data)[0, 0, 0, :].shape
     prefix = "fMRI_QC_"
     del nii
 
     # Create mean data and nifti image
-    print("Create and save MEAN")
+    print("Create MEAN")
     meandata = np.mean(data, axis=3)
     #meandata = meandata.astype(np.int16)
     header2 = header
@@ -221,6 +222,28 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # create png
     pngfilename = os.path.join(outputdirectory, prefix + 'Mean.png')
     meanimage = nii2image(meandata, 'Mean', pngfilename)
+
+    nrbins = 80
+    binmean = np.zeros((nrbins,nrvolumes[0]))
+    #hist, bin_edges = np.histogram(data[:], bins = nrbins, density=True)
+    bin_edges = np.linspace(0, np.max(data[:]), 50)
+
+    for nn in range(nrbins):
+        k = np.where(np.logical_and(meandata >= bin_edges[nn], meandata <= bin_edges[nn + 1]))
+        if len(k[0])>0:
+            binmean[nn, :] = stats.zscore(np.mean(data[k[0][:], k[1][:], k[2][:], :], axis=0))
+
+
+    plt.figure(num=None, figsize=(5, 3), dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255), edgecolor='k')
+    plt.imshow(binmean, cmap='gray', aspect='auto')
+    plt.xlabel("volumes")
+    plt.ylabel("means of bins")
+    plt.yticks(np.linspace(0, nrbins, 10), np.around(bin_edges[0::10], decimals=1), fontsize=5)
+    plt.xticks(fontsize=5)
+    pngfilename = os.path.join(outputdirectory, prefix + 'BINMEAN.png')
+    plt.savefig(pngfilename, dpi=300)
+    #plt.show()
+
 
     # Create SNR mask
     meandata4snr = np.mean(data, axis=3)
@@ -243,7 +266,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Create or load mask depending on user input
     if maskthresh is not None:  # in threshold of mask input
         # Create mask
-        print("Create and save MASK")
+        print("Create MASK")
         mask = np.where(meandata >= maskthresh, 1, 0)
     elif maskniifile is not None:  # in case of mask input
         # Load mask nifti file
@@ -304,7 +327,6 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     fig.add_axes(ax)
     ax.imshow(meanimagecol / 255.0)
     plt.savefig(pngfilename, dpi=height)
-
 
     # Apply mask
     s = np.asarray(np.asarray(np.array(data)).shape)
@@ -583,6 +605,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <li class="nav-item"><a class="nav-link" href="#Input parameter">Input parameter</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Scan parameter">Scan parameter</a></li>
                 <li class="nav-item"><a class="nav-link" href="#QC plots">QC plots</a></li>
+                <li class="nav-item"><a class="nav-link" href="#BINMEAN">BINMEAN</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Mean">Mean</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Masks">Masks</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Variance">Variance</a></li>
@@ -658,7 +681,13 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("""<div id="QC plots"> <h1>QC plots</h1>""")
     html_output.write("""<img src ="fMRI_QC_plots_""" + fname + """.png" alt="fMRI_QC plots" class="center">""")
 
-    html_output.write("\n<hr>\n")  # horizontal line
+    html_output.write("</div><br><hr><br>")  # horizontal line
+
+    # Add BIN x VOLUME to html file
+    html_output.write("""<div id="BINMEAN"> <h1>Mean volume time course of value intensity bins</h1>""")
+    html_output.write("""<img src="fMRI_QC_BINMEAN.png" alt="Mean signal from functional image" class="center">""")
+
+    html_output.write("</div><br><hr><br>")
 
     # Add mean data to html file
     html_output.write("""<div id="Mean"> <h1>Mean voxel intensity</h1>""")

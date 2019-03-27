@@ -24,6 +24,7 @@ INPUT
     -s:   percentage of low values outside the mask for SNR calculation
     -k:   mask nifti file
     -o:   output directory
+    -x:   if -x is set the 3D and 4D nifti output files are not saved
 
 OUTPUT
 It creates the following nifti images as output:
@@ -82,7 +83,7 @@ vers = 1.1
 def main():
     # check input options
     try:
-        opts, args = getopt.getopt(sys.argv[1:], "hn:m:t:k:s:o:", ["help"])
+        opts, args = getopt.getopt(sys.argv[1:], "hn:m:t:k:s:o:x", ["help"])
     except getopt.GetoptError:
         print('INPUT ERROR:')
         printhelp()
@@ -94,6 +95,7 @@ def main():
     maskthresh = None
     outputdirectory = ''
     snrvoxelpercentage = ''
+    niioutput = 1
 
     if len(opts) > 0:
 
@@ -114,6 +116,8 @@ def main():
             elif o in ("-h", "--help"):
                 printhelp()
                 sys.exit(2)
+            elif o == "-x":
+                niioutput = 0
 
         if motionfile == '':
             motionfile = None
@@ -192,10 +196,10 @@ def main():
     if maskniifile is not None:
         print('mask nifti file: ' + maskniifile)
 
-    process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage)
+    process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage, niioutput)
 
 
-def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage):
+def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage, niioutput):
     # Load and get func data
     print("Load File")
     nii = nib.load(niifile)
@@ -210,7 +214,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     del nii
 
     # Create mean data and nifti image
-    print("Create MEAN")
+    print("MEAN")
     meandata = np.mean(data, axis=3)
     #meandata = meandata.astype(np.int16)
     header2 = header
@@ -218,7 +222,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     header2['glmax'] = np.max(meandata)
     new_img = nib.Nifti1Image(meandata, affine, header2)
     newfilename = os.path.join(outputdirectory, prefix + "MEAN_" + fname + fext)
-    nib.save(new_img, newfilename)
+    if niioutput == 1:
+        nib.save(new_img, newfilename)
+
     # create png
     pngfilename = os.path.join(outputdirectory, prefix + 'Mean.png')
     meanimage = nii2image(meandata, 'Mean', pngfilename)
@@ -261,7 +267,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Save SNR mask
     new_img_snr = nib.Nifti1Image(snrmask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "MASK4SNR_" + fname + fext)
-    nib.save(new_img_snr, newfilename)
+    if niioutput == 1:
+        nib.save(new_img_snr, newfilename)
 
     # Create or load mask depending on user input
     if maskthresh is not None:  # in threshold of mask input
@@ -292,7 +299,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Save mask
     new_img = nib.Nifti1Image(mask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "MASK_" + fname + fext)
-    nib.save(new_img, newfilename)
+    if niioutput == 1:
+        nib.save(new_img, newfilename)
     pngfilename = os.path.join(outputdirectory, prefix + 'Mask.png')
     maskimage = nii2image(mask, 'Mask', pngfilename)
 
@@ -397,12 +405,11 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # create nifti files
     # --------------------
-    print("Create NIFTI files")
     # calculate standard deviation
     stddata = np.std(data, axis=3)
 
     # signal to noise ratio
-    print("- SNR")
+    print("SNR")
     # calculate SNR
     snrdata = np.divide(meandata, meannoise)
     # create png
@@ -436,13 +443,14 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     new_img = nib.Nifti1Image(snrdata, affine, header2)
     newfilename = os.path.join(outputdirectory, prefix + "SNR_" + fname + fext)
-    nib.save(new_img, newfilename)
+    if niioutput == 1:
+        nib.save(new_img, newfilename)
 
     del meandata
     del stddata
 
     # variance
-    print("- VAR")
+    print("VAR")
     vardata = np.var(data, axis=3)
     # create png
     vardata = vardata.astype(np.int32)
@@ -453,22 +461,23 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     header2['glmax'] = np.nanmax(vardata)
     new_img = nib.Nifti1Image(vardata, affine, header2)
     newfilename = os.path.join(outputdirectory, prefix + "VAR_" + fname + fext)
-    nib.save(new_img, newfilename)
+    if niioutput == 1:
+        nib.save(new_img, newfilename)
     del vardata
 
-    # squared diff
-    print("- SQUARED DIFF")
+    # # squared diff
+    # print("- SQUARED DIFF")
     diff2data = np.power(np.diff(data, axis=3), 2)
     diff2data = diff2data.astype(np.int32)
-    header2 = header
-    header2['glmin'] = np.min(diff2data)
-    header2['glmax'] = np.max(diff2data)
-    new_img = nib.Nifti1Image(diff2data, affine, header2)
-    newfilename = os.path.join(outputdirectory, prefix + "squared_diff_" + fname + fext)
-    nib.save(new_img, newfilename)
-    # del diffdata
+    # header2 = header
+    # header2['glmin'] = np.min(diff2data)
+    # header2['glmax'] = np.max(diff2data)
+    # new_img = nib.Nifti1Image(diff2data, affine, header2)
+    # newfilename = os.path.join(outputdirectory, prefix + "squared_diff_" + fname + fext)
+    # if niioutput == 1:
+    #     nib.save(new_img, newfilename)
 
-    print("- SCALED SQUARED DIFF")
+    print("SCALED SQUARED DIFF")
     diff2data_a = np.divide(diff2data, np.mean(diff2data))
     del diff2data
     diff2data_a = diff2data_a.astype(np.int32)
@@ -477,7 +486,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     header2['glmax'] = np.max(diff2data_a)
     new_img = nib.Nifti1Image(diff2data_a, affine, header2)
     newfilename = os.path.join(outputdirectory, prefix + "squared_diff_scaled_" + fname + fext)
-    nib.save(new_img, newfilename)
+    if niioutput == 1:
+        nib.save(new_img, newfilename)
 
     # create SCALED SQUARED DIFF image
     sumdiff2data_a = np.sum(diff2data_a,axis=3)

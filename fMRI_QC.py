@@ -479,6 +479,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     newfilename = os.path.join(outputdirectory, prefix + "squared_diff_scaled_" + fname + fext)
     nib.save(new_img, newfilename)
 
+    # create SCALED SQUARED DIFF image
+    sumdiff2data_a = np.sum(diff2data_a,axis=3)
+    pngfilename = os.path.join(outputdirectory, prefix + 'SQUARED_DIFF_SCALED.png')
+    mssdthresh = nii2image(sumdiff2data_a, 'DIFF', pngfilename)
+
+
     # plot data
     # ------------------
     print("Create Plot")
@@ -610,8 +616,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <li class="nav-item"><a class="nav-link" href="#Masks">Masks</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Variance">Variance</a></li>
                 <li class="nav-item"><a class="nav-link" href="#SNR">SNR</a></li>
+                <li class="nav-item"><a class="nav-link" href="#MEANDIFF">MEANDIFF</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Motion">Motion</a></li>
-                <li class="nav-item"><a class="nav-link" href="#Motion">About</a></li>
+                <li class="nav-item"><a class="nav-link" href="#About">About</a></li>
                 </ul>
             </div>
             </nav>"""
@@ -743,7 +750,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("</div><br><hr><br>")  # horizontal line
 
     html_output.write("""<div id="Variance"> <h1>Variance of voxel intensity</h1>""")
-    html_output.write("Voxel variance is thresholded at max " + str(varthresh) + ":<p></p>")
+    html_output.write("<p>Voxel variance is thresholded at max " + str(varthresh) + ":</p>")
     head, vfilename = os.path.split(varfilename)
     html_output.write("""<img src=""" + vfilename[:-4] + """_thr""" + str(varthresh) + vfilename[-4:] +
                       """ alt="Signal variance from functional image" class="center">""")
@@ -810,6 +817,15 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             </tr>
         </table>"""
     html_output.write(SNR_table)
+
+    html_output.write("</div><br><hr><br>")  # horizontal line
+
+    # Add Mask to html file
+    html_output.write("<div id=\"MEANDIFF\"> <h1 class=\"sub-report-title\">Mean of squared scaled difference over time</h1>")
+    html_output.write(
+        "<p>Mean squared difference is thresholded at max: " + str(mssdthresh) + ":</p>")
+    html_output.write("""<img src="fMRI_QC_SQUARED_DIFF_SCALED.png" alt="squeared scaled difference image" class="center">""")
+    html_output.write("<p></p>")
 
     html_output.write("</div><br><hr><br>")  # horizontal line
 
@@ -911,11 +927,15 @@ def nii2image(img3D, cond, pngfilename):
         h = np.histogram(image, bins=1000)
         thr = h[1][max(np.argwhere(h[0] > 400))]
         vmax = thr[0]
-        title = cond + ' (threshold < ' + str(vmax) + ')'
+        # title = cond + ' (threshold < ' + str(vmax) + ')'
         pngfilename = pngfilename[:-4] + "_thr" + str(vmax) + pngfilename[-4:]
+    elif cond == 'DIFF':
+        hs, be = np.histogram(image, bins=50, density=True)
+        vmax = be[5]
+
     else:
         vmax = img3D.max()
-        title = cond
+        # title = cond
 
     sizes = np.shape(image)
     height = float(sizes[0])
@@ -945,6 +965,8 @@ def nii2image(img3D, cond, pngfilename):
 
     if cond == 'Variance':
         return (vmax)
+    elif cond == 'DIFF':
+            return (vmax)
     else:
         return (image)
 

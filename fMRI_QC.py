@@ -223,10 +223,10 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     pngfilename = os.path.join(outputdirectory, prefix + 'Mean.png')
     meanimage = nii2image(meandata, 'Mean', pngfilename)
 
-    nrbins = 80
+    nrbins = 50
     binmean = np.zeros((nrbins,nrvolumes[0]))
     #hist, bin_edges = np.histogram(data[:], bins = nrbins, density=True)
-    bin_edges = np.linspace(0, np.max(data[:]), 50)
+    bin_edges = np.linspace(0, np.max(data[:]), nrbins+1)
 
     for nn in range(nrbins):
         k = np.where(np.logical_and(meandata >= bin_edges[nn], meandata <= bin_edges[nn + 1]))

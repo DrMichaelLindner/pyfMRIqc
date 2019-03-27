@@ -135,7 +135,7 @@ def main():
         # input dialogs if no files are give as input parameter
         # functional file
         if niifile == '':
-            niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii*")
+            niifile = easygui.fileopenbox(title='Select functional image', multiple=False, default="*.nii")
 
         # motion file
         if motionfile == '':

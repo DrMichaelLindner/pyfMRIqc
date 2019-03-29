@@ -260,23 +260,66 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     meanimage = nii2image(meandata, 'Mean', pngfilename)
 
     nrbins = 50
-    binmean = np.zeros((nrbins, nrvolumes[0]))
+    # bins values value range
+    binmean0 = np.zeros((nrbins, nrvolumes[0]))
     # hist, bin_edges = np.histogram(data[:], bins = nrbins, density=True)
-    bin_edges = np.linspace(0, np.max(data[:]), nrbins+1)
+    bin_edges = np.linspace(0, np.max(data[:]), nrbins + 1)
 
     for nn in range(nrbins):
         k = np.where(np.logical_and(meandata >= bin_edges[nn], meandata <= bin_edges[nn + 1]))
         if len(k[0]) > 0:
-            binmean[nn, :] = stats.zscore(np.mean(data[k[0][:], k[1][:], k[2][:], :], axis=0))
+            binmean0[nn, :] = stats.zscore(np.mean(data[k[0][:], k[1][:], k[2][:], :], axis=0))
 
-    plt.figure(num=None, figsize=(5, 3), dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255), edgecolor='k')
+    binticklabels0 = np.round(bin_edges[1::5], decimals=0)
+    binticklabels0 = binticklabels0.astype(int)
+
+    # bins equal vael number
+    binmean = np.zeros((nrbins, nrvolumes[0]))
+    d = meandata.reshape((nrvoxel,))
+    ds = np.sort(d)
+    di = np.argsort(d)
+    dbins = np.linspace(0, nrvoxel, nrbins)
+    dbinlabs = np.zeros((nrbins,))
+    for nn in range(nrbins):
+        #dbinlabs[nn] = ds[int(np.round(dbins[nn]))]
+
+        m = np.zeros((nrvoxel, 1))
+        try:
+            m[int(dbins[nn]):int(dbins[nn+1])] = 1
+        except:
+            m[int(dbins[nn]):] = 1
+        binmask = m[di]
+        binmask = binmask.reshape((shape[0], shape[1], shape[2]))
+        k = np.where(binmask == 1)
+        if len(k[0]) > 0:
+            binmean[nn, :] = stats.zscore(np.mean(data[k[0][:], k[1][:], k[2][:], :], axis=0))
+        del k
+        del binmask
+        del m
+
+    binticks = np.arange(1, nrbins, 5)
+    binticklabels = np.round(dbins[1::5], decimals=0)
+    binticklabels = binticklabels.astype(int)
+
+    # create image
+    plt.figure(num=None, figsize=(5, 7.5), dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255), edgecolor='k')
+    plt.subplot(2, 1, 1)
+    plt.imshow(binmean0, cmap='gray', aspect='auto')
+    # plt.xlabel("volumes")
+    plt.ylabel("bins")
+    plt.yticks(binticks, binticklabels0, fontsize=5)
+    plt.xticks(fontsize=5)
+    plt.title("bins with equal value ranges")
+
+    plt.subplot(2, 1, 2)
     plt.imshow(binmean, cmap='gray', aspect='auto')
     plt.xlabel("volumes")
-    plt.ylabel("means of bins")
-    plt.yticks(np.linspace(0, nrbins, 10), np.around(bin_edges[0::10], decimals=1), fontsize=5)
+    plt.ylabel("bins")
+    plt.yticks(binticks, binticklabels, fontsize=5)
     plt.xticks(fontsize=5)
+    plt.title("bins with equal number of voxel")
     pngfilename = os.path.join(outputdirectory, prefix + 'BINMEAN_' + fname + '.png')
-    plt.savefig(pngfilename, dpi=300)
+    plt.savefig(pngfilename, dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255))
 
     # Create SNR mask
     meandata4snr = np.mean(data, axis=3)
@@ -586,7 +629,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # save and show figure
     newfilename = os.path.join(outputdirectory, prefix + "PLOTS_" + fname + ".png")
-    plt.savefig(newfilename)
+    plt.savefig(newfilename, facecolor=(210 / 255, 227 / 255, 244 / 255))
     # plt.show()
 
     # Open html file

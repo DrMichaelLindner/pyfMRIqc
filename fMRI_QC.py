@@ -3,49 +3,83 @@
 """
 fMRI_QC.py calculates and provides information of a functional MRI nifti file for a quality check.
 fMRI_QC.py can be used by giving input parameter or without input parameter. If no input parameter are defined
-fMRI_QC.py will guide the user through input dialogs to manually select/define the input
+fMRI_QC.py will guide the user through input dialogs to manually select/define the input. Nevertheless, using fMRI_QC.py
+with input paramters is the recommended way of using it to gain full functionality of the tool
 
 USAGE
-    without input parameter:
-        python fmri_qc.py
+    with input parameter (recommended way to use fMRI_QC.py):
+        python fmri_qc.py <options>
 
-    with input parameter:
-        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
-        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
+    options
+        -n:   functional MR nifti file
+        -s:   percentage of voxel with the lowest values (outside the mask) for SNR calculation
         either
-            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -t <mask_threshold>
+            -t:   threshold of minimum mean values of voxel that should be included in the quality check
         or
-            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -k <mask_nift_file>
+            -k:   binary nifti mask file of voxel that should be included in the quality check
+        optional
+        -o:   output directory
+        -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt).
+        -x:   if -x is set the 3D and 4D nifti output files are not saved
 
-INPUT
-    -n:   functional MR nifti file
-    -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
-    -t:   threshold of mean values for the mask to calculate SNR etc.
-    -s:   percentage of low values outside the mask for SNR calculation
-    -k:   mask nifti file
-    -o:   output directory
-    -x:   if -x is set the 3D and 4D nifti output files are not saved
+    Example:
+        python fMRI_QC.py -n <your_functional_nii_file> -s 5 -t 200
+
+    If no options are defined, the user is guided through input dialogs to manually specify the minimally required
+    inputs
+
+    Example:
+        python fMRI_QC.py
 
 OUTPUT
-It creates the following nifti images as output:
-    - MEAN over time
-    - VAR over time
-    - MASK (binary - containing voxels above the threshold or the input mask)
-    - MASK4SNR (binary - lowest n percent of lowest valuues used for SNR calculation)
-    - SNR signal-to-noise ratio
-    - SQUARED DIFF
-    - SQUARED SCALED DIFF (Squared Diff / Mean Diff)
+(all output files end with the input filename before the file extension)
 
-a png image containing the following plots:
-    - scaled variability: Mean (over all voxel) squared diff plot over time / global mean squared diff
-    - slice by slice variability: Mean (mean per slice) squared diff plot over time / global mean squared diff
-    - if motion file was selected: sum of relative movements over time (z-scored)
-    - scaled mean voxel intensity: mean(data/global mean) )(z-scored)
-    - variance of scaled variability (z-scored)
-    - min/mean/max slice variability
+png images:
+    fMRI_QC_ ... .py:
+    - MEAN_<yourfile>
+        showing the mean voxel intensity over time in axial slices
+    - VARIANCE(_<yourfile>_thr<XXX>)
+        showing variance of the voxel time courses (max threshold XXX) in axial slices
+    - MASK_<yourfile>
+        showing the voxels included in the QC (based on -k mask or -t threshold input) in blue and the n% of voxels with
+        lowest mean voxel intensity (based on -s input) in green on top of the mean image.
+    - BINMEAN_<yourfile>
+        The value range of mean voxel intenstiy is devided in n bins. This images shows the average time course over
+        voxels for each of the bin.
+    - SUM_SQUARED_SCALED_DIFF_<yourfile>
+    - PLOTS_<yourfile> containing the following:
+        - scaled variability: Mean (over all voxel) squared diff plot over time / global mean squared diff
+        - slice by slice variability: Mean (mean per slice) squared diff plot over time / global mean squared diff
+        - if motion file was selected: sum of relative movements over time (z-scored)
+        - scaled mean voxel intensity: mean(data/global mean) )(z-scored)
+        - variance of scaled variability (z-scored)
+        - min/mean/max slice variability
 
-a text file
-    - containing an overview about scan and QC parameters
+html file
+    fMRI_QC_HTML_<yourfile>.html containing:
+    - Overview about scan and QC parameters
+    - All png images explained above
+    - Summary of signal to noise ratio (SNR) calculation
+    - Summary of motion parameter (if motion parameter file was specified as input)
+
+text file
+    fMRI_QC_textfile_<yourfile>.txt containing an overview about scan, QC adn motion parameters (similar to the html
+    file)
+
+nifti images (if -x is not set):
+    - mean_<yourfile>
+        mean voxel intensity over time (3D)
+    - variance_<yourfile>
+        variance of the voxel time courses(3D)
+    - mask_<yourfile>
+        binary - containing voxels above the threshold or the input mask (3D)
+    - mask4snr_<yourfile>
+        binary - lowest n percent of lowest values used for SNR calculation (3D)
+    - snr_<yourfile>
+        voxel-wise signal-to-noise ratio (3D)
+    - squared_scale_diff_<yourfile>
+        squared scaled signal variability: squared difference between two consecutive volumes divided by the global
+        mean difference
 
 LICENCE
 This program is free software; you can redistribute it and/or modify
@@ -66,19 +100,16 @@ import sys
 import getopt
 import nibabel as nib
 import numpy as np
-import matplotlib
 import copy
 from datetime import datetime
-
-matplotlib.use("TkAgg")
-from matplotlib import pyplot as plt
 from scipy import stats
 import easygui
-
-
-# from tkinter import messagebox, filedialog, Tk, Text, Button, mainloop
+import matplotlib
+matplotlib.use("TkAgg")
+from matplotlib import pyplot as plt
 
 vers = 1.1
+
 
 def main():
     # check input options
@@ -147,7 +178,7 @@ def main():
                                              default="*.nii")
 
         # mask threshold
-        if maskthresh == None:
+        if maskthresh is None:
             maskthresh = easygui.enterbox(title='Input mask threshold', msg='Specify threshold (mean value) for mask',
                                           default='200')
 
@@ -155,13 +186,13 @@ def main():
                 maskthresh = int(maskthresh)
 
         # mask nifti file
-        if maskniifile == None and maskthresh == None:
+        if maskniifile is None and maskthresh is None:
             maskniifile = easygui.fileopenbox(title='Select mask file', multiple=False, default="*.nii")
 
         # get SNR percentage value
+        snrmsg = 'Specify as percentage of low value voxels for SNR calculation. (e.g. 25% = 25 not 0.25)'
         snrvoxelpercentage = easygui.enterbox(title='Percentage of low value voxels for SNR calculation',
-                                              msg='Specify as percentage of low value voxels for SNR calculation. (e.g. 25% = 25 not 0.25)',
-                                              default='5')
+                                              msg=snrmsg, default='5')
         snrvoxelpercentage = snrvoxelpercentage.replace('%', '')
         snrvoxelpercentage = int(snrvoxelpercentage)
         if snrvoxelpercentage is None:
@@ -216,29 +247,27 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Create mean data and nifti image
     print("MEAN")
     meandata = np.mean(data, axis=3)
-    #meandata = meandata.astype(np.int16)
     header2 = header
     header2['glmin'] = np.min(meandata)
     header2['glmax'] = np.max(meandata)
     new_img = nib.Nifti1Image(meandata, affine, header2)
-    newfilename = os.path.join(outputdirectory, prefix + "MEAN_" + fname + fext)
+    newfilename = os.path.join(outputdirectory, prefix + "mean_" + fname + fext)
     if niioutput == 1:
         nib.save(new_img, newfilename)
 
     # create png
-    pngfilename = os.path.join(outputdirectory, prefix + 'Mean.png')
+    pngfilename = os.path.join(outputdirectory, prefix + 'MEAN_' + fname + '.png')
     meanimage = nii2image(meandata, 'Mean', pngfilename)
 
     nrbins = 50
-    binmean = np.zeros((nrbins,nrvolumes[0]))
-    #hist, bin_edges = np.histogram(data[:], bins = nrbins, density=True)
+    binmean = np.zeros((nrbins, nrvolumes[0]))
+    # hist, bin_edges = np.histogram(data[:], bins = nrbins, density=True)
     bin_edges = np.linspace(0, np.max(data[:]), nrbins+1)
 
     for nn in range(nrbins):
         k = np.where(np.logical_and(meandata >= bin_edges[nn], meandata <= bin_edges[nn + 1]))
-        if len(k[0])>0:
+        if len(k[0]) > 0:
             binmean[nn, :] = stats.zscore(np.mean(data[k[0][:], k[1][:], k[2][:], :], axis=0))
-
 
     plt.figure(num=None, figsize=(5, 3), dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255), edgecolor='k')
     plt.imshow(binmean, cmap='gray', aspect='auto')
@@ -246,10 +275,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     plt.ylabel("means of bins")
     plt.yticks(np.linspace(0, nrbins, 10), np.around(bin_edges[0::10], decimals=1), fontsize=5)
     plt.xticks(fontsize=5)
-    pngfilename = os.path.join(outputdirectory, prefix + 'BINMEAN.png')
+    pngfilename = os.path.join(outputdirectory, prefix + 'BINMEAN_' + fname + '.png')
     plt.savefig(pngfilename, dpi=300)
-    #plt.show()
-
 
     # Create SNR mask
     meandata4snr = np.mean(data, axis=3)
@@ -266,10 +293,11 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     meannoise = np.mean(meandata4snr[snrmask == 1])
     # Save SNR mask
     new_img_snr = nib.Nifti1Image(snrmask, affine, header)
-    newfilename = os.path.join(outputdirectory, prefix + "MASK4SNR_" + fname + fext)
+    newfilename = os.path.join(outputdirectory, prefix + "mask4snr_" + fname + fext)
     if niioutput == 1:
         nib.save(new_img_snr, newfilename)
 
+    mask = []
     # Create or load mask depending on user input
     if maskthresh is not None:  # in threshold of mask input
         # Create mask
@@ -298,33 +326,27 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # Save mask
     new_img = nib.Nifti1Image(mask, affine, header)
-    newfilename = os.path.join(outputdirectory, prefix + "MASK_" + fname + fext)
+    newfilename = os.path.join(outputdirectory, prefix + "mask_" + fname + fext)
     if niioutput == 1:
         nib.save(new_img, newfilename)
-    pngfilename = os.path.join(outputdirectory, prefix + 'Mask.png')
+    pngfilename = os.path.join(outputdirectory, prefix + 'MASK_' + fname + '.png')
     maskimage = nii2image(mask, 'Mask', pngfilename)
 
     # create mask image
     imageshape = np.array(meanimage).shape
     meanimagecol = np.zeros((imageshape[0], imageshape[1], 3))
-
     meanimagecol[:, :, 0] = meanimage
-
     # add SNR mask in green
-    pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
+    pngfilename = os.path.join(outputdirectory, prefix + 'SNR_' + fname + '.png')
     snrimage = nii2image(snrmask, 'SNR', pngfilename)
     meanimage0 = copy.deepcopy(meanimage)
     meanimage0[snrimage > 0] = 255
     meanimagecol[:, :, 1] = meanimage0
-
     # add mask in blue
     meanimage2 = copy.deepcopy(meanimage)
     meanimage2[maskimage > 0] = 255
     meanimagecol[:, :, 2] = meanimage2
-    # plt.imshow(meanimagecol / 255.0)
-    pngfilename = os.path.join(outputdirectory, prefix + 'Mask.png')
-    # plt.savefig(pngfilename)
-
+    pngfilename = os.path.join(outputdirectory, prefix + 'MASK_' + fname + '.png')
     sizes = np.shape(meanimagecol)
     height = float(sizes[0])
     width = float(sizes[1])
@@ -374,6 +396,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     text_file.write("SD (mask): " + str(np.std(data[mask == 1])) + "\n")
 
     # Load and get motion data if specified
+    rm = []
+    relrm = []
+    rmsum = []
+    nrrm01 = []
+    nrrm05 = []
+    nrrmv = []
     if motionfile is not None:
         print("Load Motion Parameters")
         # Load motion file
@@ -413,8 +441,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # calculate SNR
     snrdata = np.divide(meandata, meannoise)
     # create png
-    #pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
-    #snrimage = nii2image(snrdata, 'SNR', pngfilename)
+    # pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
+    # snrimage = nii2image(snrdata, 'SNR', pngfilename)
     # mean SNR over slice
     snrvec = np.zeros((snrdata.shape[2], 1))
     for ii in range(snrdata.shape[2]):
@@ -442,7 +470,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     header2['glmax'] = np.max(snrdata)
 
     new_img = nib.Nifti1Image(snrdata, affine, header2)
-    newfilename = os.path.join(outputdirectory, prefix + "SNR_" + fname + fext)
+    newfilename = os.path.join(outputdirectory, prefix + "snr_" + fname + fext)
     if niioutput == 1:
         nib.save(new_img, newfilename)
 
@@ -454,13 +482,13 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     vardata = np.var(data, axis=3)
     # create png
     vardata = vardata.astype(np.int32)
-    varfilename = os.path.join(outputdirectory, prefix + 'Variance.png')
+    varfilename = os.path.join(outputdirectory, prefix + 'VARIANCE_' + fname + '.png')
     varthresh = nii2image(vardata, 'Variance', varfilename)
     header2 = header
     header2['glmin'] = np.nanmin(vardata)
     header2['glmax'] = np.nanmax(vardata)
     new_img = nib.Nifti1Image(vardata, affine, header2)
-    newfilename = os.path.join(outputdirectory, prefix + "VAR_" + fname + fext)
+    newfilename = os.path.join(outputdirectory, prefix + "variance_" + fname + fext)
     if niioutput == 1:
         nib.save(new_img, newfilename)
     del vardata
@@ -490,10 +518,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         nib.save(new_img, newfilename)
 
     # create SCALED SQUARED DIFF image
-    sumdiff2data_a = np.sum(diff2data_a,axis=3)
-    pngfilename = os.path.join(outputdirectory, prefix + 'SQUARED_DIFF_SCALED.png')
+    sumdiff2data_a = np.sum(diff2data_a, axis=3)
+    pngfilename = os.path.join(outputdirectory, prefix + 'SUM_SQUARED_DIFF_SCALED_' + fname + '.png')
     mssdthresh = nii2image(sumdiff2data_a, 'DIFF', pngfilename)
-
 
     # plot data
     # ------------------
@@ -558,18 +585,21 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     text_file.close()
 
     # save and show figure
-    newfilename = os.path.join(outputdirectory, prefix + "plots_" + fname + ".png")
+    newfilename = os.path.join(outputdirectory, prefix + "PLOTS_" + fname + ".png")
     plt.savefig(newfilename)
     # plt.show()
 
     # Open html file
     print("Create html file")
-    htmlfilename = os.path.join(outputdirectory, prefix + "html_" + fname + ".html")
+    htmlfilename = os.path.join(outputdirectory, prefix + "HTML_" + fname + ".html")
     html_output = open(htmlfilename, 'w')
     # add head to html file
     html_output.write("<html><head><body style=""background-color:#d2e3f4;""><title>fMRI_QC output</title>")
-    bootstraplines = """<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
-            <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">"""
+    bootstraplines = """<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" 
+        integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" 
+        crossorigin="anonymous"></script> <link rel="stylesheet" 
+        href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/css/bootstrap.min.css" 
+        integrity="sha384-MCw98/SFnGE8fJT3GXwEOngsV7Zt27NXFoaoApmYm81iuXoPkFOJwJ8ERdknLPMO" crossorigin="anonymous">"""
     html_output.write(bootstraplines)
     
     # add style for tables to html file
@@ -626,14 +656,13 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <li class="nav-item"><a class="nav-link" href="#Masks">Masks</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Variance">Variance</a></li>
                 <li class="nav-item"><a class="nav-link" href="#SNR">SNR</a></li>
-                <li class="nav-item"><a class="nav-link" href="#MEANDIFF">MEANDIFF</a></li>
+                <li class="nav-item"><a class="nav-link" href="#SUMDIFF">SUMDIFF</a></li>
                 <li class="nav-item"><a class="nav-link" href="#Motion">Motion</a></li>
                 <li class="nav-item"><a class="nav-link" href="#About">About</a></li>
                 </ul>
             </div>
             </nav>"""
     html_output.write(navbar)
-
 
     # add parameter table to html file
     html_output.write("""<div id="Input parameter"> <h1>Input parameter</h1>""")
@@ -662,7 +691,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         </table>"""
     html_output.write(parameter_table)
 
-    html_output.write("</div><br><hr><br>") # horizontal line
+    html_output.write("</div><br><hr><br>")  # horizontal line
 
     # Add scan parameters and user input to html file
     html_output.write("""<div id="Scan parameter"> <h1>Scan parameter</h1>""")
@@ -682,7 +711,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
             </tr>
             <tr>
                 <th>Voxel Size</th>
-                <td>""" + str(header['pixdim'][1]) + "x" + str(header['pixdim'][2]) + "x" + str(header['pixdim'][3]) + """</td>
+                <td>""" + str(header['pixdim'][1]) + "x" + str(header['pixdim'][2]) + "x" + str(header['pixdim'][3]) +\
+                        """</td>
             </tr>
             <tr>
                 <th>Total Number of Voxels</th>
@@ -696,19 +726,21 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # add QC plot
     html_output.write("""<div id="QC plots"> <h1>QC plots</h1>""")
-    html_output.write("""<img src ="fMRI_QC_plots_""" + fname + """.png" alt="fMRI_QC plots" class="center">""")
+    html_output.write("""<img src ="fMRI_QC_PLOTS_""" + fname + """.png" alt="fMRI_QC plots" class="center">""")
 
     html_output.write("</div><br><hr><br>")  # horizontal line
 
     # Add BIN x VOLUME to html file
     html_output.write("""<div id="BINMEAN"> <h1>Mean volume time course of value intensity bins</h1>""")
-    html_output.write("""<img src="fMRI_QC_BINMEAN.png" alt="Mean signal from functional image" class="center">""")
+    html_output.write("""<img src="fMRI_QC_BINMEAN_""" + fname +
+                      """.png" alt="Mean signal from functional image" class="center">""")
 
     html_output.write("</div><br><hr><br>")
 
     # Add mean data to html file
     html_output.write("""<div id="Mean"> <h1>Mean voxel intensity</h1>""")
-    html_output.write("""<img src="fMRI_QC_Mean.png" alt="Mean signal from functional image" class="center">""")
+    html_output.write("""<img src="fMRI_QC_MEAN_""" + fname +
+                      """.png" alt="Mean signal from functional image" class="center">""")
     html_output.write("<h2> Mean voxel intensity summary</h2>")
     mean_signal_table = """
         <table style="width:50%">
@@ -736,11 +768,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Add Mask to html file
     html_output.write("<div id=\"Masks\"> <h1 class=\"sub-report-title\">Masks</h1>")
     html_output.write(
-        "<p>Voxels included in the masks are highlighted in blue, voxels used for SNR calcualtion are highlighted in green:</p>")
-    html_output.write("""<img src="fMRI_QC_MASK.png" alt="mask image" class="center">""")
+        "<p>Voxels included in the masks are highlighted in blue, "
+        "voxels used for SNR calculation are highlighted in green:</p>")
+    html_output.write("""<img src="fMRI_QC_MASK_""" + fname + """.png" alt="mask image" class="center">""")
     html_output.write("<p></p>")
     html_output.write("<h2> Mask summary</h2>")
-    MEAN_table = """
+    mean_table = """
         <table style="width:50%">
             <tr>
                 <th>Total Number of Voxels</th>
@@ -755,7 +788,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <td>""" + str(np.sum(mask)) + """</td>
             </tr>
         </table>"""
-    html_output.write(MEAN_table)
+    html_output.write(mean_table)
 
     html_output.write("</div><br><hr><br>")  # horizontal line
 
@@ -769,8 +802,6 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # Add SNR data to html file
     html_output.write("""<div id="SNR"> <h1>Signal to noise ratio (SNR)</h1>""")
-    # html_output.write("""<img src="fMRI_QC_SNR.png" alt="SNR from functional image" class="center">""")
-    # html_output.write("<h3> Voxel signal to noise ratio summary</h3>")
     allsclicesnrtext = ""
     for ii in range(len(snrvec)):
         s = str(snrvec[ii])
@@ -779,7 +810,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         s = s.replace(' ', '')
         allsclicesnrtext += s + "\n"
 
-    SNR_table = """
+    snr_table = """
         <table style="width:70%">
             <tr>
                 <th>Mask Threshold Value</th>
@@ -826,15 +857,17 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <td>""" + str(allsclicesnrtext) + """</td>
             </tr>
         </table>"""
-    html_output.write(SNR_table)
+    html_output.write(snr_table)
 
     html_output.write("</div><br><hr><br>")  # horizontal line
 
     # Add Mask to html file
-    html_output.write("<div id=\"MEANDIFF\"> <h1 class=\"sub-report-title\">Mean of squared scaled difference over time</h1>")
+    html_output.write(
+        "<div id=\"SUMDIFF\"> <h1 class=\"sub-report-title\">Sum of squared scaled difference over time</h1>")
     html_output.write(
         "<p>Mean squared difference is thresholded at max: " + str(mssdthresh) + ":</p>")
-    html_output.write("""<img src="fMRI_QC_SQUARED_DIFF_SCALED.png" alt="squeared scaled difference image" class="center">""")
+    html_output.write("""<img src="fMRI_QC_SUM_SQUARED_DIFF_SCALED_""" + fname +
+                      """.png" alt="sum of squared scaled difference image" class="center">""")
     html_output.write("<p></p>")
 
     html_output.write("</div><br><hr><br>")  # horizontal line
@@ -863,7 +896,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                     </tr>
                     <tr>
                         <th>Relative movements (>0.1mm)</th>
-                        <td>""" + str(len(nrrm01))  + """</td>
+                        <td>""" + str(len(nrrm01)) + """</td>
                     </tr>
                     <tr>
                         <th><font color=#ffa500>Relative movements (>0.5mm)</font></th>
@@ -871,7 +904,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                     </tr>
                     <tr>
                         <th><font color="red">Relative movements (>voxelsize)</font></th>
-                        <td><font color="red">""" + str(len(nrrmv))  + """</font></td>
+                        <td><font color="red">""" + str(len(nrrmv)) + """</font></td>
                     </tr>
                 </table>"""
     else:
@@ -886,16 +919,17 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     strg = t.strftime('%Y/%m/%d %H:%M:%S')
 
     html_output.write("""<div id="About"> <h1>About</h1>""")
-    about_text="""
+    about_text = """
     <br>
     <ul>
 		<li>Date of quality check: """ + str(strg) + """</li>
 		<li>fMRI_QC version: """ + str(vers) + """</li>
-		<li>fMRI_QC code: <a href="https://github.com/DrMichaelLindner/fMRI_QC">https://github.com/DrMichaelLindner/fMRI_QC</a></li>
-	</ul>
-	<br>
+        <li>fMRI_QC code: 
+        <a href="https://github.com/DrMichaelLindner/fMRI_QC">https://github.com/DrMichaelLindner/fMRI_QC</a></li>
+    </ul>
+    <br>
     <p><font size="4"><b>Thank you for using fMRI_QC.py!</b></font></p>
-	<p><b>AUTHORS:</b><br>
+    <p><b>AUTHORS:</b><br>
         Michael Lindner and Brendan Williams<br>
         University of Reading, 2019<br>
         School of Psychology and Clinical Language Sciences<br>
@@ -915,17 +949,17 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     print("Michael Lindner and Brendan Williams")
 
 
-def nii2image(img3D, cond, pngfilename):
-    matdim = np.ceil(np.sqrt(img3D.shape[2]))
-    slice_x = img3D.shape[0]
-    slice_y = img3D.shape[0]
+def nii2image(img3d, cond, pngfilename):
+    matdim = np.ceil(np.sqrt(img3d.shape[2]))
+    slice_x = img3d.shape[0]
+    slice_y = img3d.shape[0]
     img_x = int(matdim * slice_x)
     img_y = int(matdim * slice_y)
     image = np.zeros((img_x, img_y))
     cx = 0
     cy = 0
-    for ii in reversed(range(img3D.shape[2])):
-        f = img3D[:, :, ii]
+    for ii in reversed(range(img3d.shape[2])):
+        f = img3d[:, :, ii]
         image[cy:cy + slice_y, cx:cx + slice_x] = np.rot90(f)
 
         cx += slice_x
@@ -944,7 +978,7 @@ def nii2image(img3D, cond, pngfilename):
         vmax = be[5]
 
     else:
-        vmax = img3D.max()
+        vmax = img3d.max()
         # title = cond
 
     sizes = np.shape(image)
@@ -957,15 +991,6 @@ def nii2image(img3D, cond, pngfilename):
     ax.set_axis_off()
     fig.add_axes(ax)
 
-    #dpi = 300
-    #margin = 0.05
-    #figsize = (1 + margin) * img_y / dpi, (1 + margin) * img_x / dpi
-    #fig = plt.figure(figsize=figsize, dpi=dpi)
-    #extent = (0, img_x * 3, img_y * 3, 0)
-
-    #plt.imshow(image, vmax=vmax, extent=extent, interpolation=None, cmap='gray')
-    #plt.axis('off')
-    #plt.title(title)
     ax.imshow(image, vmax=vmax, cmap='gray')
     if cond is not 'Mask' and cond is not 'SNR':
         plt.savefig(pngfilename, dpi=height)
@@ -974,56 +999,39 @@ def nii2image(img3D, cond, pngfilename):
     # plt.show()
 
     if cond == 'Variance':
-        return (vmax)
+        return vmax
     elif cond == 'DIFF':
-            return (vmax)
+            return vmax
     else:
-        return (image)
+        return image
 
 
 def printhelp():
     helptext = """fMRI_QC.py calculates and provides information of a functional MRI nifti file for a quality check.
-        fMRI_QC.py can be used by giving input parameter or without input parameter. If no input parameter are defined 
-        fMRI_QC.py will guide the user through input dialogs to manually select/define the input 
-
+    
     USAGE
-        without input parameter:
-            python fmri_qc.py
+        python fMRI_QC.py <options>
 
-        with input parameter:
-            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
-            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
-            either
-                python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -t <mask_threshold>
-            or
-                python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -k <mask_nift_file>
-
-    INPUT
+    OPTIONS
         -n:   functional MR nifti file
-        -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
-        -s:   percentage of low values outside the mask for SNR calculation
-        -t:   threshold of mean values for the mask to calculate SNR etc.
-        -k:   mask nifti file
+        -s:   percentage of voxel with the lowest values (outside the mask) for SNR calculation
+        either
+            -t:   threshold of minimum mean values of voxel that should be included in the quality check
+        or
+            -k:   binary nifti mask file of voxel that should be included in the quality check
+        optional
         -o:   output directory
+        -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt).
+        -x:   if -x is set the 3D and 4D nifti output files are not saved
 
-
-    OUTPUT
-    It creates the following nifti images as output:
-        - MEAN over time
-        - VAR over time
-        - MASK (binary - containing voxels above the threshold or the input mask)
-        - MASK4SNR (binary - lowest n percent of lowest valuues used for SNR calculation)
-        - SNR: signal-to-noise ration
-        - SQUARED DIFF (squared difference between two consecutive volumes)
-        - SQUARED SCALED DIFF (Squared Diff / Mean Diff)  
-
-    and the following plots (and saved png):
-        - scaled variabiliy: Mean (over all voxel) squared diff plot over time / global mean squared diff
-        - slice by slice variabiliy: Mean (per slice) squared diff plot over time / global mean squared diff
-        - if motion file was selected: mean absolute motion over time
-        - scaled mean voxel intensity: mean(data/global mean)
-        - variance of scaled variability
-        - min/mean/max slice variability
+    Example:
+        python fMRI_QC.py -n <your_functional_nii_file> -s 5 -t 200
+        
+    If no options are defined, the user is guided through input dialogs to manually specify the minimally required
+    inputs
+    
+    Example:
+        python fMRI_QC.py
     """
     print(helptext)
 

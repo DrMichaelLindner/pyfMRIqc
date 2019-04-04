@@ -44,8 +44,8 @@ png images:
         showing the voxels included in the QC (based on -k mask or -t threshold input) in blue and the n% of voxels with
         lowest mean voxel intensity (based on -s input) in green on top of the mean image.
     - BINMEAN_<yourfile>
-        The value range of mean voxel intenstiy is devided in n bins. This images shows the average time course over
-        voxels for each of the bin.
+        The value range of mean voxel intenstiy is devided in 50 bins with equal number of voxels.
+        This image shows the average time course over voxels for each of the bins.
     - SUM_SQUARED_SCALED_DIFF_<yourfile>
     - PLOTS_<yourfile> containing the following:
         - scaled variability: Mean (over all voxel) squared diff plot over time / global mean squared diff
@@ -133,7 +133,7 @@ def main():
         # check parameter input
         for o, a in opts:
             if o == "-n":
-                niifile = a
+                niifile = str(a)
             elif o == "-m":
                 motionfile = a
             elif o == "-t":
@@ -260,64 +260,42 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     meanimage = nii2image(meandata, 'Mean', pngfilename)
     meanimage = meanimage / np.max(meanimage[:]) * 255
     nrbins = 50
-    # bins values value range
-    binmean0 = np.zeros((nrbins, nrvolumes[0]))
-    # hist, bin_edges = np.histogram(data[:], bins = nrbins, density=True)
-    bin_edges = np.linspace(0, np.max(data[:]), nrbins + 1)
-
-    for nn in range(nrbins):
-        k = np.where(np.logical_and(meandata >= bin_edges[nn], meandata <= bin_edges[nn + 1]))
-        if len(k[0]) > 0:
-            binmean0[nn, :] = stats.zscore(np.mean(data[k[0][:], k[1][:], k[2][:], :], axis=0))
-
-    binticklabels0 = np.round(bin_edges[1::5], decimals=0)
-    binticklabels0 = binticklabels0.astype(int)
 
     # bins equal vael number
     binmean = np.zeros((nrbins, nrvolumes[0]))
     d = meandata.reshape((nrvoxel,))
-    ds = np.sort(d)
     di = np.argsort(d)
     dbins = np.linspace(0, nrvoxel, nrbins)
     dbinlabs = np.zeros((nrbins,))
-    for nn in range(nrbins):
-        #dbinlabs[nn] = ds[int(np.round(dbins[nn]))]
 
+    for nn in range(nrbins):
         m = np.zeros((nrvoxel, 1))
         try:
-            m[int(dbins[nn]):int(dbins[nn+1])] = 1
+            m[int(np.round(dbins[nn], decimals=0)):int(np.round(dbins[nn+1], decimals=0))] = 1
         except:
-            m[int(dbins[nn]):] = 1
-        binmask = m[di]
+            m[int(np.round(dbins[nn], decimals=0)):] = 1
+        binmask = m[di.argsort()]
         binmask = binmask.reshape((shape[0], shape[1], shape[2]))
         k = np.where(binmask == 1)
         if len(k[0]) > 0:
             binmean[nn, :] = stats.zscore(np.mean(data[k[0][:], k[1][:], k[2][:], :], axis=0))
+            dbinlabs[nn] = np.max(meandata[k[0][:], k[1][:], k[2][:]])
         del k
         del binmask
         del m
 
     binticks = np.arange(1, nrbins, 5)
-    binticklabels = np.round(dbins[1::5], decimals=0)
+    binticklabels = dbinlabs[1::5]
     binticklabels = binticklabels.astype(int)
 
     # create image
-    plt.figure(num=None, figsize=(5, 7.5), dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255), edgecolor='k')
-    plt.subplot(2, 1, 1)
-    plt.imshow(binmean0, cmap='gray', aspect='auto')
-    # plt.xlabel("volumes")
-    plt.ylabel("bins")
-    plt.yticks(binticks, binticklabels0, fontsize=5)
-    plt.xticks(fontsize=5)
-    plt.title("bins with equal value ranges")
-
-    plt.subplot(2, 1, 2)
+    plt.figure(num=None, figsize=(5, 3.5), dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255), edgecolor='k')
     plt.imshow(binmean, cmap='gray', aspect='auto')
     plt.xlabel("volumes")
     plt.ylabel("bins")
     plt.yticks(binticks, binticklabels, fontsize=5)
     plt.xticks(fontsize=5)
-    plt.title("bins with equal number of voxel")
+    plt.title("bins with equal number of voxel (" + str(int(nrvoxel/nrbins)) + " per bin)")
     pngfilename = os.path.join(outputdirectory, prefix + 'BINMEAN_' + fname + '.png')
     plt.savefig(pngfilename, dpi=300, facecolor=(210 / 255, 227 / 255, 244 / 255))
 
@@ -333,8 +311,6 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     snrvoxelnr = int(nrvoxel * snrvoxelpercentage / 100)
     snrmax = vec[0][int(nrvoxel * snrvoxelpercentage / 100)]
     snrmask = np.where((meandata4snr < vec[0][int(nrvoxel * snrvoxelpercentage / 100)]) & (meandata4snr > 0), 1, 0)
-
-
 
     # Mean noise for SNR
     meannoise = np.mean(meandata4snr[snrmask == 1])

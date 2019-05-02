@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
 """
-fMRI_QC.py calculates and provides information of a functional MRI nifti file for a quality check.
-fMRI_QC.py can be used by giving input parameter or without input parameter. If no input parameter are defined
-fMRI_QC.py will guide the user through input dialogs to manually select/define the input. Nevertheless, using fMRI_QC.py
-with input paramters is the recommended way of using it to gain full functionality of the tool
+pyfMRIqc.py calculates and provides information of a functional MRI nifti file for a quality check.
+pyfMRIqc.py can be used by giving input parameter or without input parameter. If no input parameter are defined
+pyfMRIqc.py will guide the user through input dialogs to manually select/define the input. Nevertheless, using
+pyfMRIqc.py with input parameter is the recommended way of using it to gain full functionality of the tool
 
 USAGE
-    with input parameter (recommended way to use fMRI_QC.py):
-        python fmri_qc.py <options>
+    with input parameter (recommended way to use pyfMRIqc.py):
+        python pyfMRIqc.py <options>
 
     options
         -n:   functional MR nifti file
@@ -23,13 +23,13 @@ USAGE
         -x:   if -x is set the 3D and 4D nifti output files are not saved
 
     Example:
-        python fMRI_QC.py -n <your_functional_nii_file> -s 5 -t 200
+        python pyfMRIqc.py -n <your_functional_nii_file> -s 5 -t 200
 
     If no options are defined, the user is guided through input dialogs to manually specify the minimally required
     inputs
 
     Example:
-        python fMRI_QC.py
+        python pyfMRIqc.py
 
 OUTPUT
 (all output files end with the input filename before the file extension)
@@ -157,13 +157,13 @@ def main():
 
         # check possible input errors and minimum requirements
         if niifile == '':
-            print("INPUT ERROR (missing input): functional nifti file needs to be defined (-n). See fMRI_QC.py -h")
+            print("INPUT ERROR (missing input): functional nifti file needs to be defined (-n). See pyfMRIqc.py -h")
             sys.exit(2)
         if maskniifile is not None and maskthresh is not None:
-            print("INPUT ERROR: Only mask (-k) or threshold (-t) can be defined. See fMRI_QC.py -h")
+            print("INPUT ERROR: Only mask (-k) or threshold (-t) can be defined. See pyfMRIqc.py -h")
             sys.exit(2)
         if maskniifile is None and maskthresh is None:
-            print("INPUT ERROR (missing input): mask (-k) or threshold (-t) need to be defined. See fMRI_QC.py -h")
+            print("INPUT ERROR (missing input): mask (-k) or threshold (-t) need to be defined. See pyfMRIqc.py -h")
             sys.exit(2)
 
     else:
@@ -636,7 +636,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     htmlfilename = os.path.join(outputdirectory, prefix + "HTML_" + fname + ".html")
     html_output = open(htmlfilename, 'w')
     # add head to html file
-    html_output.write("<html><head><body style=""background-color:#d2e3f4;""><title>fMRI_QC output</title>")
+    html_output.write("<html><head><body style=""background-color:#d2e3f4;""><title>pyfMRIqc output</title>")
     bootstraplines = """<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" 
         integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" 
         crossorigin="anonymous"></script> <link rel="stylesheet" 
@@ -687,7 +687,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     navbar = """
             <nav class="navbar fixed-top navbar-expand-lg navbar-light bg-light">
-            <a class="navbar-brand" href="#">fMRI_QC</a>
+            <a class="navbar-brand" href="#">pyfMRIqc</a>
             <div class="collapse navbar-collapse">
                 <ul class="navbar-nav">
                 <li class="nav-item"><a class="nav-link" href="#Input parameter">Input parameter</a></li>
@@ -970,7 +970,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         <a href="https://github.com/DrMichaelLindner/fMRI_QC">https://github.com/DrMichaelLindner/fMRI_QC</a></li>
     </ul>
     <br>
-    <p><font size="4"><b>Thank you for using fMRI_QC.py!</b></font></p>
+    <p><font size="4"><b>Thank you for using pyfMRIqc.py!</b></font></p>
     <p><b>AUTHORS:</b><br>
         Michael Lindner and Brendan Williams<br>
         University of Reading, 2019<br>
@@ -1049,10 +1049,10 @@ def nii2image(img3d, cond, pngfilename):
 
 
 def printhelp():
-    helptext = """fMRI_QC.py calculates and provides information of a functional MRI nifti file for a quality check.
+    helptext = """pyfMRIqc.py calculates and provides information of a functional MRI nifti file for a quality check.
     
     USAGE
-        python fMRI_QC.py <options>
+        python pyfMRIqc.py <options>
 
     OPTIONS
         -n:   functional MR nifti file
@@ -1067,13 +1067,13 @@ def printhelp():
         -x:   if -x is set the 3D and 4D nifti output files are not saved
 
     Example:
-        python fMRI_QC.py -n <your_functional_nii_file> -s 5 -t 200
+        python pyfMRIqc.py -n <your_functional_nii_file> -s 5 -t 200
         
     If no options are defined, the user is guided through input dialogs to manually specify the minimally required
     inputs
     
     Example:
-        python fMRI_QC.py
+        python pyfMRIqc.py
     """
     print(helptext)
 

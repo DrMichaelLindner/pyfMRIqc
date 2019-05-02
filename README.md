@@ -1,28 +1,28 @@
-# fMRI_QC
-fMRI_QC.py calculates and provides information of a given functional MRI nifti file for a quality check.
-fMRI_QC.py can be used by giving input parameter or without input parameter. If no input parameter are defined
-fMRI_QC.py will guide the user through input dialogs to manually select/define the input
+# pyfMRIqc
+pyfMRIqc.py calculates and provides information of a given functional MRI nifti file for a quality check.
+pyfMRIqc.py can be used by giving input parameter or without input parameter. If no input parameter are defined
+pyfMRIqc.py will guide the user through input dialogs to manually select/define the input
 
 ## *USAGE*
 
 
 ### *without input parameter*
-        python fmri_qc.py
+        python pyfMRIqc.py
 		
 		
 ### *with input parameter*
-        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc>
-        python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
+        python pyfMRIqc.py -n <func_nift_file> -s <SNR_voxel_perc>
+        python pyfMRIqc.py -n <func_nift_file> -s <SNR_voxel_perc> -m <motion_file>
         either
-            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -t <mask_threshold>
+            python pyfMRIqc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -t <mask_threshold>
         or
-            python fmri_qc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -k <mask_nift_file>
+            python pyfMRIqc.py -n <func_nift_file> -s <SNR_voxel_perc> (-m <motion_file>) -k <mask_nift_file>
         
 
 ## *Input*
         
 	-n:   functional MR nifti file
-	-m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt)
+	-m:   motion parameters file of motion correction from FSL (*.par), SPM (rp*.txt) or AFNI (*.1D)
 	-s:   percentage of low values outside the mask for SNR calculation
 	-o:   output directory
 	either
@@ -33,7 +33,7 @@ fMRI_QC.py will guide the user through input dialogs to manually select/define t
     
     
 ## *Output*
-fMRI_QC.py creates the following outputs:
+pyfMRIqc.py creates the following outputs:
 
 ### *Nifti files:*
 
@@ -56,17 +56,17 @@ fMRI_QC.py creates the following outputs:
 ### *a text file:*
 	-  containing an overview about scan and QC parameters
 
-See guidelines about the output in the [Wiki](https://github.com/DrMichaelLindner/fMRI_QC/wiki)
+See guidelines about the output in the [Wiki](https://github.com/DrMichaelLindner/pyfMRIqc/wiki)
 
 
 ## *Install*  
-Copy the fMRI_QC folder in a folder of your choice on your system and add the directory to your PYTHONPATH.
+Copy the pyfMRIqc folder in a folder of your choice on your system and add the directory to your PYTHONPATH.
 
 
 ## *Dependencies*  
-fMRI_QC is developed in python 3.6 and the following packages need to be installed: 
+pyfMRIqc is developed in python 3.6 and the following packages need to be installed:
 numpy, nibabel, matplotloib, scipy and easygui. 
-(fMRI_QC was developed and tested with the following versions: 
+(pyfMRIqc was developed and tested with the following versions:
 python: 3.6.4, numpy: 1.14.3, nibabel: 2.2.1, matplotloib: 2.1.0, scipy: 0.19.1 and easygui: 0.98.1 )
 
     

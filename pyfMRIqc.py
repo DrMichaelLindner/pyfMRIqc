@@ -35,7 +35,7 @@ OUTPUT
 (all output files end with the input filename before the file extension)
 
 png images:
-    fMRI_QC_ ... .py:
+    pyfMRIqc_ ... .py:
     - MEAN_<yourfile>
         showing the mean voxel intensity over time in axial slices
     - VARIANCE(_<yourfile>_thr<XXX>)
@@ -56,14 +56,14 @@ png images:
         - min/mean/max slice variability
 
 html file
-    fMRI_QC_HTML_<yourfile>.html containing:
+    pyfMRIqc_HTML_<yourfile>.html containing:
     - Overview about scan and QC parameters
     - All png images explained above
     - Summary of signal to noise ratio (SNR) calculation
     - Summary of motion parameter (if motion parameter file was specified as input)
 
 text file
-    fMRI_QC_textfile_<yourfile>.txt containing an overview about scan, QC adn motion parameters (similar to the html
+    pyfMRIqc_textfile_<yourfile>.txt containing an overview about scan, QC adn motion parameters (similar to the html
     file)
 
 nifti images (if -x is not set):
@@ -213,7 +213,7 @@ def main():
     # output folder
     if outputdirectory == '':
         filepath, filename = os.path.split(niifile)
-        outputdirectory = os.path.join(filepath, "fMRI_QC_" + fname)
+        outputdirectory = os.path.join(filepath, "pyfMRIqc_" + fname)
 
     # create output folder if not existing
     if not os.path.exists(outputdirectory):
@@ -241,7 +241,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     voxelsize = header['pixdim'][1]
     nrvoxel = shape[0] * shape[1] * shape[2]
     nrvolumes = np.array(data)[0, 0, 0, :].shape
-    prefix = "fMRI_QC_"
+    prefix = "pyfMRIqc_"
     del nii
 
     # Create mean data and nifti image
@@ -772,20 +772,20 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # add QC plot
     html_output.write("""<div id="QC plots"> <h1>QC plots</h1>""")
-    html_output.write("""<img src ="fMRI_QC_PLOTS_""" + fname + """.png" alt="fMRI_QC plots" class="center">""")
+    html_output.write("""<img src ="pyfMRIqc_PLOTS_""" + fname + """.png" alt="pyfMRIqc plots" class="center">""")
 
     html_output.write("</div><br><hr><br>")  # horizontal line
 
     # Add BIN x VOLUME to html file
     html_output.write("""<div id="BINMEAN"> <h1>Mean volume time course of value intensity bins</h1>""")
-    html_output.write("""<img src="fMRI_QC_BINMEAN_""" + fname +
+    html_output.write("""<img src="pyfMRIqc_BINMEAN_""" + fname +
                       """.png" alt="Mean signal from functional image" class="center">""")
 
     html_output.write("</div><br><hr><br>")
 
     # Add mean data to html file
     html_output.write("""<div id="Mean"> <h1>Mean voxel intensity</h1>""")
-    html_output.write("""<img src="fMRI_QC_MEAN_""" + fname +
+    html_output.write("""<img src="pyfMRIqc_MEAN_""" + fname +
                       """.png" alt="Mean signal from functional image" class="center">""")
     html_output.write("<h2> Mean voxel intensity summary</h2>")
     mean_signal_table = """
@@ -816,7 +816,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write(
         "<p>Voxels included in the masks are highlighted in blue, "
         "voxels used for SNR calculation are highlighted in green:</p>")
-    html_output.write("""<img src="fMRI_QC_MASK_""" + fname + """.png" alt="mask image" class="center">""")
+    html_output.write("""<img src="pyfMRIqc_MASK_""" + fname + """.png" alt="mask image" class="center">""")
     html_output.write("<p></p>")
     html_output.write("<h2> Mask summary</h2>")
     mean_table = """
@@ -912,7 +912,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         "<div id=\"SUMDIFF\"> <h1 class=\"sub-report-title\">Sum of squared scaled difference over time</h1>")
     html_output.write(
         "<p>Mean squared difference is thresholded at max: " + str(mssdthresh) + ":</p>")
-    html_output.write("""<img src="fMRI_QC_SUM_SQUARED_DIFF_SCALED_""" + fname +
+    html_output.write("""<img src="pyfMRIqc_SUM_SQUARED_DIFF_SCALED_""" + fname +
                       """.png" alt="sum of squared scaled difference image" class="center">""")
     html_output.write("<p></p>")
 
@@ -969,9 +969,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     <br>
     <ul>
 		<li>Date of quality check: """ + str(strg) + """</li>
-		<li>fMRI_QC version: """ + str(vers) + """</li>
-        <li>fMRI_QC code: 
-        <a href="https://github.com/DrMichaelLindner/fMRI_QC">https://github.com/DrMichaelLindner/fMRI_QC</a></li>
+		<li>pyfMRIqc version: """ + str(vers) + """</li>
+        <li>pyfMRIqc code: 
+        <a href="https://github.com/DrMichaelLindner/pyfMRIqc">https://github.com/DrMichaelLindner/pyfMRIqc</a></li>
     </ul>
     <br>
     <p><font size="4"><b>Thank you for using pyfMRIqc.py!</b></font></p>

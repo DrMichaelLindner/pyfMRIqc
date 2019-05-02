@@ -1,7 +1,13 @@
 # pyfMRIqc
+<<<<<<< HEAD
 pyfMRIqc.py calculates and provides information of a given functional MRI nifti file for a quality check.
 pyfMRIqc.py can be used by giving input parameter or without input parameter. If no input parameter are defined
 pyfMRIqc.py will guide the user through input dialogs to manually select/define the input
+=======
+pyfMRIqc (formerly known as fMRI_QC.py) calculates and provides information of a given functional MRI nifti file for a quality check.
+pyfMRIqc can be used by giving input parameter or without input parameter. If no input parameter are defined
+pyfMRIqc will guide the user through input dialogs to manually select/define the input
+>>>>>>> b4ee88af7782ceaaec3601476cd7920cd8987258
 
 ## *USAGE*
 
@@ -64,7 +70,8 @@ Copy the pyfMRIqc folder in a folder of your choice on your system and add the d
 
 
 ## *Dependencies*  
-pyfMRIqc is developed in python 3.6 and the following packages need to be installed:
+
+pyfMRIqc is developed in python 3.6 and the following packages need to be installed: 
 numpy, nibabel, matplotloib, scipy and easygui. 
 (pyfMRIqc was developed and tested with the following versions:
 python: 3.6.4, numpy: 1.14.3, nibabel: 2.2.1, matplotloib: 2.1.0, scipy: 0.19.1 and easygui: 0.98.1 )

@@ -19,7 +19,7 @@ USAGE
             -k:   binary nifti mask file of voxel that should be included in the quality check
         optional
         -o:   output directory
-        -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt).
+        -m:   motion parameters file of motion correction from FSL (*.par), SPM (rp*.txt) or AFNI (*.1D).
         -x:   if -x is set the 3D and 4D nifti output files are not saved
 
     Example:
@@ -1067,7 +1067,7 @@ def printhelp():
             -k:   binary nifti mask file of voxel that should be included in the quality check
         optional
         -o:   output directory
-        -m:   motion parameters file of motion correction from FSL (*.par) or SPM (rp*.txt).
+        -m:   motion parameters file of motion correction from FSL (*.par), SPM (rp*.txt) or AFNI (*.1D).
         -x:   if -x is set the 3D and 4D nifti output files are not saved
 
     Example:

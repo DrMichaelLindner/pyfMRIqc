@@ -175,7 +175,7 @@ def main():
         # motion file
         if motionfile == '':
             motionfile = easygui.fileopenbox(title='Select motion correction files (from FSL or SPM)', multiple=False,
-                                             default="*.nii")
+                                             default="*.par")
 
         # mask threshold
         if maskthresh is None:
@@ -456,6 +456,10 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 rm[:, ii] = rm[:, ii] * 50
 
         elif motionext == ".par":  # FSL
+            for ii in [0, 1, 2]:
+                rm[:, ii] = rm[:, ii] * 50
+
+        elif motionext == ".1D":  # AFNI
             for ii in [0, 1, 2]:
                 rm[:, ii] = rm[:, ii] * 50
 

@@ -230,6 +230,7 @@ def main():
     process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage, niioutput)
 
 
+# noinspection PyBroadException
 def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname, fext, snrvoxelpercentage, niioutput):
     # Load and get func data
     print("Load File")
@@ -261,7 +262,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     meanimage = meanimage / np.max(meanimage[:]) * 255
     nrbins = 50
 
-    # bins equal vael number
+    # bins equal number of voxel
     binmean = np.zeros((nrbins, nrvolumes[0]))
     d = meandata.reshape((nrvoxel,))
     di = np.argsort(d)
@@ -314,6 +315,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # Mean noise for SNR
     meannoise = np.mean(meandata4snr[snrmask == 1])
+    stdnoise = np.std(meandata4snr[snrmask == 1])
     # Save SNR mask
     new_img_snr = nib.Nifti1Image(snrmask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "mask4snr_" + fname + fext)
@@ -485,7 +487,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # signal to noise ratio
     print("SNR")
     # calculate SNR
-    snrdata = np.divide(meandata, meannoise)
+    snrdata = np.divide(meandata, stdnoise)
     # create png
     # pngfilename = os.path.join(outputdirectory, prefix + 'SNR.png')
     # snrimage = nii2image(snrdata, 'SNR', pngfilename)
@@ -539,19 +541,10 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         nib.save(new_img, newfilename)
     del vardata
 
-    # # squared diff
-    # print("- SQUARED DIFF")
+    # scaled squared diff
+    print("SCALED SQUARED DIFF")
     diff2data = np.power(np.diff(data, axis=3), 2)
     diff2data = diff2data.astype(np.int32)
-    # header2 = header
-    # header2['glmin'] = np.min(diff2data)
-    # header2['glmax'] = np.max(diff2data)
-    # new_img = nib.Nifti1Image(diff2data, affine, header2)
-    # newfilename = os.path.join(outputdirectory, prefix + "squared_diff_" + fname + fext)
-    # if niioutput == 1:
-    #     nib.save(new_img, newfilename)
-
-    print("SCALED SQUARED DIFF")
     diff2data_a = np.divide(diff2data, np.mean(diff2data))
     del diff2data
     diff2data_a = diff2data_a.astype(np.int32)
@@ -580,14 +573,14 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     plt.subplot(plotnr, 1, 1)
     plt.plot(d1)
     plt.xlabel('Difference image number')
-    plt.ylabel('scaled variability')
+    plt.ylabel('mean SSD')
 
     # plot 2
     d2 = np.mean(np.mean(diff2data_a, axis=0), axis=0)
     plt.subplot(plotnr, 1, 2)
     plt.plot(d2.T, 'x')
     plt.xlabel('Difference image number')
-    plt.ylabel('slice by slice variability')
+    plt.ylabel('slice-wise mean SSD')
 
     # plot 3
     d3 = np.mean(np.mean(np.mean(np.divide(data, np.mean(data)), axis=0), axis=0), axis=0)
@@ -595,8 +588,8 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     for ii in range(diff2data_a.shape[3]):
         vardiff[ii] = np.var(diff2data_a[:, :, :, ii])
     plt.subplot(plotnr, 1, 3)
-    plt.plot(stats.zscore(vardiff), label='variance of scaled variability')
-    plt.plot(stats.zscore(d3), label='scaled mean voxel intensity')
+    plt.plot(stats.zscore(vardiff), label='variance of SSD')
+    plt.plot(stats.zscore(d3), label='normalized mean voxel intensity')
     plt.xlabel('Image number')
     plt.ylabel('Normalized Amplitudes')
     if motionfile is not None:
@@ -624,7 +617,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     plt.plot(d4a, label='max')
     plt.plot(d4c, label='mean')
     plt.xlabel('Slice number')
-    plt.ylabel('min/mean/max slice variability')
+    plt.ylabel('min/mean/max slice SSD')
     plt.legend(loc='upper right')
 
     # close text file
@@ -774,10 +767,12 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("""<div id="QC plots"> <h1>QC plots</h1>""")
     html_output.write("""<img src ="pyfMRIqc_PLOTS_""" + fname + """.png" alt="pyfMRIqc plots" class="center">""")
 
+    html_output.write("<p>SSD = scaled squared difference</p>") ####### update
+
     html_output.write("</div><br><hr><br>")  # horizontal line
 
     # Add BIN x VOLUME to html file
-    html_output.write("""<div id="BINMEAN"> <h1>Mean volume time course of value intensity bins</h1>""")
+    html_output.write("""<div id="BINMEAN"> <h1>Mean voxel time course of bins with equal number of voxels</h1>""")
     html_output.write("""<img src="pyfMRIqc_BINMEAN_""" + fname +
                       """.png" alt="Mean signal from functional image" class="center">""")
 

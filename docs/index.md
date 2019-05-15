@@ -74,8 +74,6 @@ ___
 
 # Usage
 
-pyfMRIqc can be executed via the command window/terminal using the following command (either from pyfMRIqc folder or from any directory after adding the folder to the path).
-
 pyfMRIqc can be used with a GUI (for beginners or for testing a single data set) or with command line parameters (recommended usage - for advanced users, multiple datasets or adding to a pipeline)
 The GUI input version of pyfMRIqc needs to be started without any input parameters:
 

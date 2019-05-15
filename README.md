@@ -56,7 +56,7 @@ pyfMRIqc.py creates the following outputs:
 ### *a text file:*
 	-  containing an overview about scan and QC parameters
 
-See guidelines about the output in the [Wiki](https://github.com/DrMichaelLindner/pyfMRIqc/wiki)
+See guidelines about the output in the [Documentation](https://drmichaellindner.github.io/pyfMRIqc/)
 
 
 ## *Install*  

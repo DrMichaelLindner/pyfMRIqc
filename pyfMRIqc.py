@@ -772,7 +772,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                     shows: 1) Normalised average of the demeaned voxel intensity of each volume. 2) Normalised 
                     variance of the SSD over all voxels in the mask. 3) (only if motion file was specified as input)
                     : Normalized sum of relative movement (sum of all relative motion translations and rotations.).
-                    See <a href = "https://github.com/DrMichaelLindner/pyfMRIqc/doc/index.md#qc-plots">here</a>
+                    See <a href = "https://drmichaellindner.github.io/pyfMRIqc/#qc-plots">here</a>
                     for guidelines about how to use these plots.</p>"""
     html_output.write(plottext)
     html_output.write("""<img src ="pyfMRIqc_PLOTS_""" + fname + """.png" alt="pyfMRIqc plots" class="center">""")
@@ -782,7 +782,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Add BIN x VOLUME to html file
     html_output.write("""<div id="BINMEAN"> <h1>Mean voxel time course of bins with equal number of voxels</h1>""")
     bintext = """<p>Mean voxel time course of bins.  
-                        See <a href = "https://github.com/DrMichaelLindner/pyfMRIqc/doc/index.md#mean-voxel-time-course-of-bins-with-equal-number-of-voxels">here</a>
+                        See <a href = "https://drmichaellindner.github.io/pyfMRIqc/#mean-voxel-time-course-of-bins-with-equal-number-of-voxels">here</a>
                         for guidelines about how to use this plot.</p>"""
     html_output.write(bintext)
     html_output.write("""<img src="pyfMRIqc_BINMEAN_""" + fname +
@@ -821,7 +821,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("<div id=\"Masks\"> <h1 class=\"sub-report-title\">Masks</h1>")
     masktext = """<p>Voxels included in the masks and used for the quality check are highlighted in blue,
                 voxels used for SNR calculation are highlighted in green. 
-                See <a href = "https://github.com/DrMichaelLindner/pyfMRIqc/doc/index.md#masks">here</a>
+                See <a href = "https://drmichaellindner.github.io/pyfMRIqc/#masks">here</a>
                 for guidelines about how to use this plot.</p>"""
     html_output.write(masktext)
     html_output.write("""<img src="pyfMRIqc_MASK_""" + fname + """.png" alt="mask image" class="center">""")
@@ -849,7 +849,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     html_output.write("""<div id="Variance"> <h1>Variance of voxel intensity</h1>""")
     html_output.write("<p>For better visualization the image is thresholded at max " + str(varthresh) +
                       " to minimize the scaling effect of large outliers.")
-    vartext = """ See <a href = "https://github.com/DrMichaelLindner/pyfMRIqc/doc/index.md#variance-of-voxel-intensity">
+    vartext = """ See <a href = "https://drmichaellindner.github.io/pyfMRIqc/#variance-of-voxel-intensity">
                 here</a> for guidelines about how to use this plot.</p>"""
     html_output.write(vartext)
     head, vfilename = os.path.split(varfilename)
@@ -860,7 +860,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
     # Add SNR data to html file
     html_output.write("""<div id="SNR"> <h1>Signal to noise ratio (SNR)</h1>""")
-    snrtext = """<p>See <a href = "https://github.com/DrMichaelLindner/pyfMRIqc/doc/index.md#signal-to-noise-ratio">
+    snrtext = """<p>See <a href = "https://drmichaellindner.github.io/pyfMRIqc/#signal-to-noise-ratio">
                        here</a> for more info.</p><p></p>"""
     html_output.write(snrtext)
 
@@ -930,7 +930,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         "<p>For better visualization the image is Mean squared scaled difference (SSD) is thresholded at max: " + str(mssdthresh) + ".")
     ssdtext = """This image shows the sum of the difference in voxel intensity between adjacent volumes for each 
                     voxel across all adjacent volumes acquired during scanning. See <a href = 
-                    "https://github.com/DrMichaelLindner/pyfMRIqc/doc/index.md#sum-of-squared-scaled-differences-over-time">
+                    "https://drmichaellindner.github.io/pyfMRIqc/#sum-of-squared-scaled-differences-over-time">
                     here</a> for more info.</p>"""
     html_output.write(ssdtext)
     html_output.write("""<img src="pyfMRIqc_SUM_SQUARED_DIFF_SCALED_""" + fname +
@@ -1039,16 +1039,17 @@ def nii2image(img3d, cond, pngfilename):
         thr = h[1][max(np.argwhere(h[0] > 400))]
         vmax = thr[0]
         # title = cond + ' (threshold < ' + str(vmax) + ')'
+        vmax = np.round(vmax, decimals=0)
         pngfilename = pngfilename[:-4] + "_thr" + str(vmax) + pngfilename[-4:]
     elif cond == 'DIFF':
         hs, be = np.histogram(image, bins=50, density=True)
         vmax = be[5]
+        vmax = np.round(vmax, decimals=0)
 
     else:
         vmax = img3d.max()
         # title = cond
 
-    vmax = np.round(vmax, decimals=0)
 
     sizes = np.shape(image)
     height = float(sizes[0])

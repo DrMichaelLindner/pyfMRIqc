@@ -1,3 +1,5 @@
+![LOGO](pyfMRIqc_logo.png)
+
 # pyfMRIqc
 pyfMRIqc.py calculates and provides information of a given functional MRI nifti file for a quality check.
 pyfMRIqc.py can be used by giving input parameter or without input parameter. If no input parameter are defined

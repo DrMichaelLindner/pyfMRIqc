@@ -1,3 +1,5 @@
+![LOGO](images/pyfMRIqc_logo.png)
+
 # pyfMRIqc User Manual
 
 <br>

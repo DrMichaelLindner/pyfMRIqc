@@ -923,7 +923,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <td>""" + str(np.nanmin(snrvec)) + """</td>
             </tr>
             <tr>
-                <th>Min Slice SNR</th>
+                <th>Max Slice SNR</th>
                 <td>""" + str(np.nanmax(snrvec)) + """</td>
             </tr>
             <tr>

@@ -170,7 +170,7 @@ def main():
         # input dialogs if no files are give as input parameter
 
         # Get file extensions
-        niiext = easygui.enterbox(title='Input file extension', msg='Specify file extension as either *.nii or *.nii.gz',
+        niiext = easygui.enterbox(title='Input file extension', msg='Specify file extension for functional data (*.nii or *.nii.gz)',
                                   default = "*.nii.gz")
 
         motionext = easygui.enterbox(title='Input file extension', msg='Optional: Specify file extension for motion file'

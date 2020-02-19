@@ -168,14 +168,26 @@ def main():
 
     else:
         # input dialogs if no files are give as input parameter
+
+        # Get file extensions
+        niiext = easygui.enterbox(title='Input file extension', msg='Specify file extension for functional data (*.nii or *.nii.gz)',
+                                  default = "*.nii.gz")
+
+        motionext = easygui.enterbox(title='Input file extension', msg='Optional: Specify file extension for motion file'
+                                                                       ' if used as *.par for FSL, *.txt for SPM, or *.1D'
+                                                                       'for AFNI', default = "*.par")
+
+        if motionext == None:
+            motionext = "*.par"
+
         # functional file
         if niifile == '':
-            niifile = easygui.fileopenbox(title='Select functional image (*.nii or *.nii.gz)', multiple=False)
+            niifile = easygui.fileopenbox(title='Select functional image (*.nii or *.nii.gz)', multiple=False, default = niiext)
 
         # motion file
         if motionfile == '':
             motionfile = easygui.fileopenbox(title='Optional: Select motion correction files (from FSL, SPM or AFNI) - '
-                                                   'Press cancel to ignore the input', multiple=False)
+                                                   'Press cancel to ignore the input', multiple=False, default = motionext)
 
         # mask threshold
         if maskthresh is None:
@@ -911,7 +923,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
                 <td>""" + str(np.nanmin(snrvec)) + """</td>
             </tr>
             <tr>
-                <th>Min Slice SNR</th>
+                <th>Max Slice SNR</th>
                 <td>""" + str(np.nanmax(snrvec)) + """</td>
             </tr>
             <tr>

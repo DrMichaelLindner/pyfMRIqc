@@ -68,9 +68,9 @@ Copy the pyfMRIqc folder in a folder of your choice on your system and add the d
 ## *Dependencies*  
 
 pyfMRIqc is developed in python 3.6 and the following packages need to be installed: 
-numpy, nibabel, matplotloib, scipy and easygui. 
+numpy, nibabel, matplotlib, scipy and easygui. 
 (pyfMRIqc was developed and tested with the following versions:
-python: 3.6.4, numpy: 1.14.3, nibabel: 2.2.1, matplotloib: 2.1.0, scipy: 0.19.1 and easygui: 0.98.1 )
+python: 3.6.4, numpy: 1.14.3, nibabel: 2.2.1, matplotlib: 2.1.0, scipy: 0.19.1 and easygui: 0.98.1 )
 
     
 ## *License*  

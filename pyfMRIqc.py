@@ -487,9 +487,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         relrm = np.diff(rm, axis=1)
 
         # get thrtesholds:
-        nrrm01 = rm[np.where(rm > .1)]
-        nrrm05 = rm[np.where(rm > .5)]
-        nrrmv = rm[np.where(rm > voxelsize)]
+        nrrm01 = relrm[np.where(relrm > .1)]
+        nrrm05 = relrm[np.where(relrm > .5)]
+        nrrmv = relrm[np.where(relrm > voxelsize)]
 
     # create nifti files
     # --------------------

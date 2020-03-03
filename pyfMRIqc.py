@@ -171,11 +171,11 @@ def main():
 
         # Get file extensions
         niiext = easygui.enterbox(title='Input file extension', msg='Specify file extension for functional data (*.nii or *.nii.gz)',
-                                  default = "*.nii.gz")
+                                  default="*.nii.gz")
 
         motionext = easygui.enterbox(title='Input file extension', msg='Optional: Specify file extension for motion file'
                                                                        ' if used as *.par for FSL, *.txt for SPM, or *.1D'
-                                                                       'for AFNI', default = "*.par")
+                                                                       'for AFNI', default="*.par")
 
         if motionext == None:
             motionext = "*.par"
@@ -247,7 +247,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Load and get func data
     print("Load File")
     nii = nib.load(niifile)
-    data = nii.get_fdata()
+    data = nii.get_fdata(dtype=np.float16)
     shape = np.array(data)[:, :, :, 0].shape
     header = nii.header
     affine = nii.affine
@@ -611,9 +611,9 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         text_file.write("Max absolute Movement: " + str(np.max(rm)) + "\n")
         text_file.write("Mean relative Movement: " + str(np.mean(relrm)) + "\n")
         text_file.write("Max relative Movement: " + str(np.max(relrm)) + "\n")
-        text_file.write("Movements (>0.1mm): " + str(len(nrrm01)) + "\n")
-        text_file.write("Movements (>0.5mm): " + str(len(nrrm05)) + "\n")
-        text_file.write("Movements (>voxelsize): " + str(len(nrrmv)) + "\n")
+        text_file.write("Relative movements (>0.1mm): " + str(len(nrrm01)) + "\n")
+        text_file.write("Relative movements (>0.5mm): " + str(len(nrrm05)) + "\n")
+        text_file.write("Relataive movements (>voxelsize): " + str(len(nrrmv)) + "\n")
 
         # add line to plot
         plt.plot(stats.zscore(rmsum), label='sum of relative movements')

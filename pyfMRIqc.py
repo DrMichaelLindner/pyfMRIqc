@@ -355,9 +355,14 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         print("Load Nifti Mask")
         masknii = nib.load(maskniifile)
         maskdata = masknii.get_fdata()
-        maskshape = np.array(maskdata)[:, :, :, 0].shape
-        mask = np.asarray(maskdata)
-        mask = mask[:, :, :, 0]
+        if len(maskdata.shape) == 4:
+            mask = np.asarray(maskdata)
+            maskshape = np.array(maskdata)[:, :, :, 0].shape
+            mask = mask[:, :, :, 0]
+        elif len(maskdata.shape) == 3:
+            mask = np.asarray(maskdata)
+            maskshape = np.array(maskdata)[:, :, :].shape
+            mask = mask[:, :, :]
         del masknii
         # nifti mask validation
         print("Check Nifti Mask")
@@ -371,15 +376,16 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         elif sum(np.asarray(shape) - np.asarray(maskshape)) != 0:
             easygui.msgbox("Mask dimensions not equal to functional data")
 
-        if np.min(meandata[mask == 1]) > maskthresh:
-            print("INPUT ERROR: Mask contains voxel with smaller intensity than max intensity value of given "
-                  "percentage of voxel for SNR calculation.\n"
-                  "SNR value range of " + str(snrvoxelpercentage) +
-                  "% voxel with lowest intensity = 0 - " + str(snrmax) + "\n"
-                  "Total value range = 0 - " + str(np.max(data[:])) + "\n"
-                  "Minimum voxel intensity in mask = " + str(np.min(meandata[mask == 1])) + "\n"
-                  "Either change mask or decrease percentage of voxel for SNR.")
-            sys.exit(2)
+        if maskthresh is not None:
+            if np.min(meandata[mask == 1]) > maskthresh:
+                print("INPUT ERROR: Mask contains voxel with smaller intensity than max intensity value of given "
+                    "percentage of voxel for SNR calculation.\n"
+                    "SNR value range of " + str(snrvoxelpercentage) +
+                    "% voxel with lowest intensity = 0 - " + str(snrmax) + "\n"
+                    "Total value range = 0 - " + str(np.max(data[:])) + "\n"
+                    "Minimum voxel intensity in mask = " + str(np.min(meandata[mask == 1])) + "\n"
+                    "Either change mask or decrease percentage of voxel for SNR.")
+                sys.exit(2)
     # Save mask
     new_img = nib.Nifti1Image(mask, affine, header)
     newfilename = os.path.join(outputdirectory, prefix + "mask_" + fname + fext)

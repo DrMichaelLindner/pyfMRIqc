@@ -247,7 +247,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
     # Load and get func data
     print("Load File")
     nii = nib.load(niifile)
-    data = nii.get_fdata(dtype=np.float16)
+    data = nii.get_fdata()
     shape = np.array(data)[:, :, :, 0].shape
     header = nii.header
     affine = nii.affine

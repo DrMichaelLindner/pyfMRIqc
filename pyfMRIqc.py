@@ -470,7 +470,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         x, motionext = os.path.splitext(motionfile)
         rm = np.loadtxt(motionfile)
 
-        # degree in mm assuming head radius is 5cm
+        # radian in mm assuming head radius is 5cm
         if motionext == ".txt":  # SPM
             for ii in [3, 4, 5]:
                 rm[:, ii] = rm[:, ii] * 50
@@ -481,6 +481,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
         elif motionext == ".1D":  # AFNI
             for ii in [0, 1, 2]:
+		rm[:,ii] = np.radians(rm[:,ii]) # convert from degree to radians
                 rm[:, ii] = rm[:, ii] * 50
 
         # create relative values

@@ -481,7 +481,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
         elif motionext == ".1D":  # AFNI
             for ii in [0, 1, 2]:
-		rm[:,ii] = np.radians(rm[:,ii]) # convert from degree to radians
+                rm[:, ii] = np.radians(rm[:,ii]) # convert from degree to radians
                 rm[:, ii] = rm[:, ii] * 50
 
         # create relative values

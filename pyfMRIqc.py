@@ -470,7 +470,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         x, motionext = os.path.splitext(motionfile)
         rm = np.loadtxt(motionfile)
 
-        # degree in mm assuming head radius is 5cm
+        # motion in mm assuming head radius is 5cm
         if motionext == ".txt":  # SPM
             for ii in [3, 4, 5]:
                 rm[:, ii] = rm[:, ii] * 50
@@ -481,18 +481,22 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
 
         elif motionext == ".1D":  # AFNI
             for ii in [0, 1, 2]:
+                rm[:, ii] = np.radians(rm[:,ii]) # convert from degree to radians
                 rm[:, ii] = rm[:, ii] * 50
 
-        # absolute values
+        # create relative values
+        relrm = np.diff(rm, axis=0)
+
+        # create absolute values of relative movement
+        relrm = np.absolute(relrm)
+
+        # absolute values of absolute movement
         rm = np.absolute(rm)
 
         # sum absolute values
         rmsum = np.sum(rm, axis=1)
 
-        # create relative values
-        relrm = np.diff(rm, axis=1)
-
-        # get thrtesholds:
+        # get thresholds:
         nrrm01 = relrm[np.where(relrm > .1)]
         nrrm05 = relrm[np.where(relrm > .5)]
         nrrmv = relrm[np.where(relrm > voxelsize)]
@@ -619,7 +623,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         text_file.write("Max relative Movement: " + str(np.max(relrm)) + "\n")
         text_file.write("Relative movements (>0.1mm): " + str(len(nrrm01)) + "\n")
         text_file.write("Relative movements (>0.5mm): " + str(len(nrrm05)) + "\n")
-        text_file.write("Relataive movements (>voxelsize): " + str(len(nrrmv)) + "\n")
+        text_file.write("Relative movements (>voxelsize): " + str(len(nrrmv)) + "\n")
 
         # add line to plot
         plt.plot(stats.zscore(rmsum), label='sum of relative movements')

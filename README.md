@@ -1,9 +1,14 @@
 ![LOGO](pyfMRIqc_logo.png)
 
 # pyfMRIqc
-pyfMRIqc.py calculates and provides information of a given functional MRI nifti file for a quality check.
-pyfMRIqc.py can be used by giving input parameter or without input parameter. If no input parameter are defined
-pyfMRIqc.py will guide the user through input dialogs to manually select/define the input
+pyfMRIqc.py calculates and provides quality assurance metrics for a given functional MRI nifti file.
+pyfMRIqc.py can be used by defining input parameters or without input parameters. If no input parameters are defined
+pyfMRIqc.py will guide the user through dialog boxes to manually define the input.
+
+## Citation
+If you use pyfMRIqc as part of your work, please include the following citation:
+
+Williams, B. and Lindner, M., 2020. pyfMRIqc: A Software Package for Raw fMRI Data Quality Assurance. Journal of Open Research Software, 8(1), p.23. DOI: [http://doi.org/10.5334/jors.280](http://doi.org/10.5334/jors.280)
 
 ## *USAGE*
 
@@ -81,8 +86,8 @@ by the Free Software Foundation;
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
   
   
-## *Author*
-Michael Lindner  
-University of Reading, 2018  
+## *Authors*
+Michael Lindner, Brendan Williams  
+University of Reading, 2020  
 School of Psychology and Clinical Language Sciences  
 Centre for Integrative Neuroscience and Neurodynamics

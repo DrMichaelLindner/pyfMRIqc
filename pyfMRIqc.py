@@ -626,7 +626,7 @@ def process(niifile, motionfile, maskthresh, maskniifile, outputdirectory, fname
         text_file.write("Relative movements (>voxelsize): " + str(len(nrrmv)) + "\n")
 
         # add line to plot
-        relrmsum = np.sum(relrm)
+        relrmsum = np.sum(relrm, axis=1)
         plt.plot(stats.zscore(relrmsum), label='sum of relative movements')
         plt.plot(stats.zscore(rmsum), label='sum of absolute movements')
 
